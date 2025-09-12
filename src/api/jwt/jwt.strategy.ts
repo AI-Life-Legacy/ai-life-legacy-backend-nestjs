@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Users } from '../../db/entity/users.entity';
+import { Users } from '../../db/entity/user.entity';
 import { Repository } from 'typeorm';
 import { CustomNotFoundException } from '../../common/exception/exception';
 import { ConfigService } from '@nestjs/config';
