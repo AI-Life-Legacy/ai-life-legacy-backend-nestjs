@@ -7,6 +7,8 @@ import { CustomConflictException, CustomNotFoundException, CustomUnauthorizedExc
 import { ConfigService } from '@nestjs/config';
 import { RefreshTokenRepository } from '../refresh-token/refresh-token.repository';
 import ms from 'ms';
+import { AuthIdentityRepository } from '../auth-identity/auth-identity.repository';
+import { Provider } from '../../common/enum/auth-identity.enum';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +17,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private refreshTokenRepository: RefreshTokenRepository,
+    private authIdentityRepository: AuthIdentityRepository,
   ) {}
 
   private hashToken(token: string): string {
@@ -45,11 +48,14 @@ export class AuthService {
   async signup(authCredentialsDto: AuthCredentialsDto): Promise<JwtTokenResponseDto> {
     const { email, password } = authCredentialsDto;
 
-    const existingUser = await this.userRepository.findUserByEmail(email);
+    const existingUser = await this.authIdentityRepository.findAuthIdentityByProviderUuid(email);
     if (existingUser) throw new CustomConflictException('Email already exists');
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await this.userRepository.createAndSaveUserByEmailAndPassword(email, hashedPassword);
+
+    // 트랜잭션으로 묶어야 됨.
+    const newUser = await this.userRepository.createUser();
+    await this.authIdentityRepository.saveAuthIdentity(newUser.uuid, Provider.local, email, hashedPassword);
 
     const payload = { uuid: newUser.uuid };
     const accessToken = this.generateAccessToken(payload);
@@ -63,18 +69,18 @@ export class AuthService {
   async signIn(authCredentialsDto: AuthCredentialsDto): Promise<JwtTokenResponseDto> {
     const { email, password } = authCredentialsDto;
 
-    const user = await this.userRepository.findUserByEmail(email);
-    if (!user) throw new CustomNotFoundException('User not found');
+    const userAuthIdentity = await this.authIdentityRepository.findAuthIdentityByProviderUuid(email);
+    if (!userAuthIdentity) throw new CustomNotFoundException('User not found');
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, userAuthIdentity.passwordHash);
     if (!isPasswordValid) throw new CustomUnauthorizedException('Invalid credentials');
 
-    const payload = { uuid: user.uuid };
+    const payload = { uuid: userAuthIdentity.user.uuid };
     const accessToken = this.generateAccessToken(payload);
     const { token: refreshToken, expiresAt } = this.generateRefreshToken(payload);
 
     // 항상 새로 발급 → DB에 업데이트
-    await this.refreshTokenRepository.updateRefreshToken(user.uuid, this.hashToken(refreshToken), expiresAt);
+    await this.refreshTokenRepository.updateRefreshToken(userAuthIdentity.user.uuid, this.hashToken(refreshToken), expiresAt);
 
     return { accessToken, refreshToken };
   }

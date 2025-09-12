@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Users } from 'src/db/entity/user.entity';
+import { User } from 'src/db/entity/user.entity';
 import { Repository } from 'typeorm';
 import { CustomInternalServerException } from '../../common/exception/exception';
 import { LoggerService } from '../logger/logger.service';
@@ -8,8 +8,8 @@ import { LoggerService } from '../logger/logger.service';
 @Injectable()
 export class UserRepository {
   constructor(
-    @InjectRepository(Users)
-    private userRepository: Repository<Users>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -36,12 +36,9 @@ export class UserRepository {
     }
   }
 
-  async createAndSaveUserByEmailAndPassword(email: string, password: string) {
+  async createUser() {
     try {
-      const user = await this.userRepository.create({
-        email,
-        password,
-      });
+      const user = await this.userRepository.create({});
       return await this.userRepository.save(user);
     } catch (err) {
       console.error(err);

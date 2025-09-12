@@ -11,6 +11,7 @@ import { DatabaseModule } from './db/db.module';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from './api/logger/logger.module';
 import { RefreshTokenModule } from './api/refresh-token/refresh-token.module';
+import { AuthIdentityModule } from './api/auth-identity/auth-identity.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { RefreshTokenModule } from './api/refresh-token/refresh-token.module';
     ContentModule,
     LoggerModule,
     RefreshTokenModule,
+    AuthIdentityModule,
   ],
   controllers: [AppController],
 })
