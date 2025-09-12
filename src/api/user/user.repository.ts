@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Users } from 'src/db/entity/users.entity';
+import { Users } from 'src/db/entity/user.entity';
 import { Repository } from 'typeorm';
 import { CustomInternalServerException } from '../../common/exception/exception';
 import { LoggerService } from '../logger/logger.service';

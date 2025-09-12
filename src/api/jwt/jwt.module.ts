@@ -4,7 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Users } from '../../db/entity/users.entity';
+import { Users } from '../../db/entity/user.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Global()
