@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { CaseTocMapping } from './case-toc-mapping.entity';
+import { User } from './user.entity';
 
 @Entity('user_cases')
 export class UserCase {
@@ -14,4 +15,7 @@ export class UserCase {
 
   @OneToMany(() => CaseTocMapping, (mapping) => mapping.userCase)
   tocMappings: CaseTocMapping[];
+
+  @OneToMany(() => User, (user) => user.userCase)
+  users: User[];
 }

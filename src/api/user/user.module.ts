@@ -1,20 +1,15 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
-import { Users } from '../../db/entity/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserRepository } from './user.repository';
 import { UserCaseModule } from '../user-case/user-case.module';
-import { ContentModule } from '../content/content.module';
-import { PostModule } from '../post/post.module';
+import { LifeLegacyModule } from '../life-legacy/life-legacy.module';
+import { User } from '../../db/entity/user.entity';
+import { UserIntroModule } from '../user-intro/user-intro.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Users]),
-    forwardRef(() => PostModule),
-    UserCaseModule,
-    ContentModule,
-  ],
+  imports: [TypeOrmModule.forFeature([User]), LifeLegacyModule, UserCaseModule, UserIntroModule],
   controllers: [UserController],
   providers: [UserService, UserRepository],
   exports: [UserService, UserRepository],

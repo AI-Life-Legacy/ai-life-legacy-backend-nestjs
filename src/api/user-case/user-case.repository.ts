@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserCase } from 'src/db/entity/user-case.entity';
 import { Repository } from 'typeorm';
@@ -24,11 +24,13 @@ export class UserCaseRepository {
     }
   }
 
-  async findContentsByCaseName(caseName: string) {
+  async findTocAndQuestionsCaseId(caseId: number) {
     try {
       return await this.userCaseRepository.findOne({
-        where: { name: caseName },
-        relations: ['contentMappings.content'],
+        where: {
+          id: caseId,
+        },
+        relations: ['tocMappings.toc', 'tocMappings.toc.questions'],
       });
     } catch (err) {
       this.loggerService.warn(`User-Case/FindCaseByCaseName Error : ${err}`);

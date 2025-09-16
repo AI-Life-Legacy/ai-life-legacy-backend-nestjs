@@ -72,23 +72,9 @@ export class UserContentAndQuestionsDTO {
   questions: UserQuestionDTO[];
 }
 
-export class UserPostsDTO {
-  @ApiProperty({ description: '유저 답변', example: '유저 답변' })
+export class SaveUserIntroDTO {
+  @ApiProperty({ description: '유저 자기소개', example: '~~~' })
   @IsNotEmpty()
   @IsString()
-  response: string;
-
-  @ApiProperty({ description: '유저 목차 내용', example: '탄생과 유아기 시절' })
-  @IsNotEmpty()
-  @IsString()
-  content: string;
-
-  @ApiProperty({
-    description: '유저 질문 내용',
-    example:
-      '탄생과 유아기 시절언제 어디서 태어나셨나요? 탄생에 얽힌 이야기가 있나요? 부모님이나 가족들이 당신의 유아기에 대해 어떤 이야기를 해주셨나요?',
-  })
-  @IsNotEmpty()
-  @IsString()
-  question: string;
+  userIntroText: string;
 }

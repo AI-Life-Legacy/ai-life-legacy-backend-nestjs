@@ -2,16 +2,16 @@ import { Module } from '@nestjs/common';
 import { AiModule } from './api/ai/ai.module';
 import { UserModule } from './api/user/user.module';
 import { AuthModule } from './api/auth/auth.module';
-import { PostModule } from './api/post/post.module';
+import { LifeLegacyModule } from './api/life-legacy/life-legacy.module';
 import { AppController } from './app.controller';
 import { UserCaseModule } from './api/user-case/user-case.module';
-import { ContentModule } from './api/content/content.module';
 import { JwtModule } from './api/jwt/jwt.module';
 import { DatabaseModule } from './db/db.module';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from './api/logger/logger.module';
 import { RefreshTokenModule } from './api/refresh-token/refresh-token.module';
 import { AuthIdentityModule } from './api/auth-identity/auth-identity.module';
+import { UserIntroModule } from './api/user-intro/user-intro.module';
 
 @Module({
   imports: [
@@ -23,12 +23,12 @@ import { AuthIdentityModule } from './api/auth-identity/auth-identity.module';
     AuthModule,
     UserModule,
     AiModule,
-    PostModule,
+    LifeLegacyModule,
     UserCaseModule,
-    ContentModule,
     LoggerModule,
     RefreshTokenModule,
     AuthIdentityModule,
+    UserIntroModule,
   ],
   controllers: [AppController],
 })

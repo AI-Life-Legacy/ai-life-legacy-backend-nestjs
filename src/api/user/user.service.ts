@@ -1,28 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { UserCaseRepository } from '../user-case/user-case.repository';
-import { SetUserCaseDTO, UserCaseDTO, UserContentAndQuestionsDTO, UserContentDTO, UserPostsDTO } from './dto/user.dto';
-import { ContentsRepository } from '../content/contents.repository';
-import { PostRepository } from '../post/post.repository';
-import { Posts } from '../../db/entity/posts.entity';
+import { SaveUserIntroDTO, SetUserCaseDTO } from './dto/user.dto';
 import { CustomNotFoundException } from '../../common/exception/exception';
+import { PatchPostDTO } from '../life-legacy/dto/save.dto';
+import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
+import { UserIntroRepository } from '../user-intro/user-intro.repository';
 
 @Injectable()
 export class UserService {
   constructor(
     private userRepository: UserRepository,
     private userCaseRepository: UserCaseRepository,
-    private contentsRepository: ContentsRepository,
-    private postsRepository: PostRepository,
+    private lifeLegacyRepository: LifeLegacyRepository,
+    private userIntroRepository: UserIntroRepository,
   ) {}
 
-  async getUserCase(uuid: string): Promise<UserCaseDTO> {
-    const user = await this.userRepository.findUserByUUID(uuid);
-    if (!user) throw new CustomNotFoundException('Not Found User');
-    return { name: user.userCase.name };
+  async saveUserIntroduction(uuid: string, saveUserIntroDTO: SaveUserIntroDTO) {
+    const { userIntroText } = saveUserIntroDTO;
+
+    const userIntroduction = await this.userIntroRepository.findUserIntroByUuid(uuid);
+    if (userIntroduction) throw new ConflictException('Existing User Introduction');
+
+    return await this.userIntroRepository.saveUserIntro(uuid, userIntroText);
   }
 
-  async setUserCase(uuid: string, setUserCaseDTO: SetUserCaseDTO): Promise<UserCaseDTO> {
+  async getUserCase(uuid: string) {
+    const user = await this.userRepository.findUserByUUID(uuid);
+    if (!user) throw new CustomNotFoundException('Not Found User');
+    return { caseId: user.userCase.id };
+  }
+
+  async setUserCase(uuid: string, setUserCaseDTO: SetUserCaseDTO) {
     const { caseName } = setUserCaseDTO;
     const user = await this.userRepository.findUserByUUID(uuid);
     if (!user) throw new CustomNotFoundException('Not Found User');
@@ -34,61 +43,35 @@ export class UserService {
     // 있으면 해당 caseId를 user_case(FK)에 저장
     user.userCase = userCase;
 
-    await this.userRepository.saveUser(user);
-    return { name: userCase.name };
+    return await this.userRepository.saveUser(user);
   }
 
-  async getUserContents(uuid: string): Promise<UserContentDTO[]> {
-    const { name } = await this.getUserCase(uuid);
-
-    const { contentMappings } = await this.userCaseRepository.findContentsByCaseName(name);
-
-    const userContentList = contentMappings.map((contents) => {
-      return {
-        id: contents.content.id,
-        content: contents.content.text,
-      };
-    });
-    return userContentList;
+  async getUserTocAndQuestions(uuid: string) {
+    const { caseId } = await this.getUserCase(uuid);
+    return await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
   }
 
-  async getQuestionsByContentId(contentId: number): Promise<UserContentAndQuestionsDTO> {
-    const contents = await this.contentsRepository.findQuestionsByContentsId(contentId);
-    if (!contents) throw new CustomNotFoundException('Not Found Content');
-
-    const content = contents.text;
-    const questions = contents.questions.map((question) => {
-      return {
-        id: question.question.id,
-        question: question.question.text,
-      };
-    });
-
-    return {
-      id: contentId,
-      content: content,
-      questions: questions,
-    };
+  async getUserAnswer(questionId: number, uuid: string) {
+    // questionId와 uuid를 기준으로 LifeLegacyAnswer 데이터를 findOne하기
+    const userAnswer = await this.lifeLegacyRepository.findUserAnswerByUuidAndQuestionId(uuid, questionId);
+    // 이 로직은 추후에 바뀔 수 있음 -> 유저의 작성 데이터를 언제 보여주느냐에 따라 바뀔 듯. (만약 다 작성한 다음에 접근할 수 있다면 오류를 뱉는 것이 옳음
+    if (!userAnswer) return '';
+    return userAnswer;
   }
 
-  async getAllUserPostsByUUID(uuid: string): Promise<UserPostsDTO[]> {
-    const userPosts: Posts[] = await this.postsRepository.findAllUserPostsByUUID(uuid);
-    if (userPosts.length == 0) throw new CustomNotFoundException('Not Found Posts');
+  async updatePost(uuid: string, answerId: number, patchPostDto: PatchPostDTO) {
+    const { questionId, updateAnswer } = patchPostDto;
 
-    const result = userPosts.map((post) => {
-      return {
-        response: post.response,
-        content: post.content.text,
-        question: post.question.text,
-      };
-    });
-    return result;
+    const userAnswer = await this.lifeLegacyRepository.findUserAnswerByUuidAndQuestionId(uuid, questionId);
+    if (!userAnswer) throw new CustomNotFoundException('Not Found User Answer');
+
+    await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, updateAnswer);
   }
 
-  async deleteUser(uuid: string, deleteType: number) {
+  async deleteUser(uuid: string) {
     const user = await this.userRepository.findUserByUUID(uuid);
     if (!user) throw new CustomNotFoundException('Not Found User');
-    user.deleteType = deleteType;
+
     await this.userRepository.deleteUser(user);
   }
 }

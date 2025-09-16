@@ -1,66 +1,73 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
-import { SetUserCaseDTO, UserCaseDTO, UserContentAndQuestionsDTO, UserContentDTO, UserPostsDTO } from './dto/user.dto';
+import { SaveUserIntroDTO, SetUserCaseDTO, UserCaseDTO, UserContentAndQuestionsDTO, UserContentDTO } from './dto/user.dto';
 import { Success204ResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiDefaultResponses } from '../../common/deco/api-default-response.deco';
 import { ApiSuccess204Response, ApiSuccessResponse } from '../../common/deco/api-paginated-response.deco';
+import { PatchPostDTO } from '../life-legacy/dto/save.dto';
+import { GetUUID } from '../../common/deco/get-user.decorator';
 
-@ApiTags('users')
-@Controller('users')
+@ApiTags('me')
+@Controller('me')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private userService: UserService) {}
 
-  @Get('/:uuid/cases')
-  @ApiOperation({ summary: '유저 케이스 불러오기 API' })
-  @ApiSuccessResponse(UserCaseDTO)
-  @ApiDefaultResponses()
-  async getUserCase(@Param('uuid', ParseUUIDPipe) uuid: string): Promise<SuccessResponseDTO<UserCaseDTO>> {
-    return new SuccessResponseDTO(await this.userService.getUserCase(uuid));
+  @Post('/intro')
+  @ApiOperation({ summary: '유저 자기소개 저장하기 API' })
+  async saveIntro(@Body() saveUserIntroDTO: SaveUserIntroDTO, @Param('uuid', ParseUUIDPipe) uuid: string) {
+    return new SuccessResponseDTO(await this.userService.saveUserIntroduction(uuid, saveUserIntroDTO));
   }
 
-  @Put('/:uuid/cases')
+  @Put('/case')
   @ApiOperation({ summary: '유저 케이스 저장하기 API' })
   @ApiBody({ type: SetUserCaseDTO })
   @ApiSuccessResponse(UserCaseDTO)
   @ApiDefaultResponses()
-  async setUserCase(@Body() setUserCaseDTO: SetUserCaseDTO, @Param('uuid', ParseUUIDPipe) uuid: string): Promise<SuccessResponseDTO<UserCaseDTO>> {
+  async setUserCase(@Body() setUserCaseDTO: SetUserCaseDTO, @GetUUID() uuid: string): Promise<SuccessResponseDTO<void>> {
     return new SuccessResponseDTO(await this.userService.setUserCase(uuid, setUserCaseDTO));
   }
 
-  @Get('/:uuid/contents')
-  @ApiOperation({ summary: '유저 맞춤형 목차 불러오기 API' })
+  @Get('/toc-questions')
+  @ApiOperation({ summary: '유저 맞춤형 목차 및 질문 불러오기 API' })
   @ApiSuccessResponse(UserContentDTO, true)
   @ApiDefaultResponses()
-  async getUserContents(@Param('uuid', ParseUUIDPipe) uuid: string): Promise<SuccessResponseDTO<UserContentDTO[]>> {
-    return new SuccessResponseDTO(await this.userService.getUserContents(uuid));
+  async getUserContents(@GetUUID() uuid: string) {
+    return new SuccessResponseDTO(await this.userService.getUserTocAndQuestions(uuid));
   }
 
-  @Get('/:uuid/contents/:contentsId/questions')
-  @ApiOperation({ summary: '유저 맞춤형 목차별 질문들 불러오기 API' })
+  @Get('/answers')
+  @ApiOperation({ summary: '유저가 작성한 답변 불러오기 API' })
   @ApiSuccessResponse(UserContentAndQuestionsDTO)
   @ApiDefaultResponses()
-  async getUserQuestions(@Param('contentsId', ParseIntPipe) contentsId: number): Promise<SuccessResponseDTO<UserContentAndQuestionsDTO>> {
-    return new SuccessResponseDTO(await this.userService.getQuestionsByContentId(contentsId));
+  async getUserAnswer(@Query('questionId', ParseIntPipe) questionId: number, @GetUUID() uuid: string) {
+    return new SuccessResponseDTO(await this.userService.getUserAnswer(questionId, uuid));
   }
 
-  @Get('/:uuid/posts')
-  @ApiOperation({ summary: '유저 자서전 데이터 모두 불러오기 API' })
-  @ApiSuccessResponse(UserPostsDTO, true)
+  // 수정 필요 -> 유저가 작성한 자서전 내용 업데이트 API
+  @Patch('/answers/:answerId')
+  @ApiOperation({ summary: '유저가 작성한 자서전 내용 업데이트하기 API' })
+  @ApiBody({ type: PatchPostDTO })
+  @ApiSuccess204Response
   @ApiDefaultResponses()
-  async getAllUserPosts(@Param('uuid', ParseUUIDPipe) uuid: string): Promise<SuccessResponseDTO<UserPostsDTO[]>> {
-    return new SuccessResponseDTO(await this.userService.getAllUserPostsByUUID(uuid));
+  async updateUserAnswer(
+    @Body() patchPostDTO: PatchPostDTO,
+    @Param('answerId', ParseIntPipe) answerId: number,
+    @GetUUID() uuid: string,
+  ): Promise<Success204ResponseDTO> {
+    await this.userService.updatePost(uuid, answerId, patchPostDTO);
+    return new Success204ResponseDTO();
   }
 
-  @Delete('/:uuid')
+  @Delete('/')
   @ApiOperation({ summary: '회원탈퇴 API' })
   @ApiSuccess204Response
   @ApiDefaultResponses()
-  async deleteUser(@Query('deleteType', ParseIntPipe) deleteType: number, @Param('uuid', ParseUUIDPipe) uuid: string): Promise<Success204ResponseDTO> {
-    await this.userService.deleteUser(uuid, deleteType);
+  async deleteUser(@GetUUID() uuid: string){
+    await this.userService.deleteUser(uuid);
     return new Success204ResponseDTO();
   }
 }

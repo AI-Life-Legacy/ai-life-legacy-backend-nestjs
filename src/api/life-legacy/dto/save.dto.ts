@@ -8,15 +8,7 @@ export class SavePostDTO {
   })
   @IsNotEmpty()
   @IsString()
-  response: string;
-
-  @ApiProperty({
-    description: '목차 id',
-    example: 1,
-  })
-  @IsNotEmpty()
-  @IsNumber()
-  contentId: number;
+  answer: string;
 
   @ApiProperty({
     description: '질문 id',
@@ -34,15 +26,7 @@ export class PatchPostDTO {
   })
   @IsNotEmpty()
   @IsString()
-  response: string;
-
-  @ApiProperty({
-    description: '목차 id',
-    example: 1,
-  })
-  @IsNotEmpty()
-  @IsNumber()
-  contentId: number;
+  updateAnswer: string;
 
   @ApiProperty({
     description: '질문 id',
