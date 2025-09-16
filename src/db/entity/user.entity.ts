@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
+import { Entity, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { AuthIdentity } from './auth-identity.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { LifeLegacyAnswer } from './life-legacy-answer.entity';
@@ -7,7 +7,7 @@ import { UserIntro } from './user-intro.entity';
 
 @Entity('users')
 export class User {
-  @PrimaryColumn({ type: 'varchar', length: 36 })
+  @PrimaryGeneratedColumn('uuid')   // ✅ uuid 자동 생성
   uuid: string;
 
   @CreateDateColumn({ name: 'created_at' })

@@ -6,7 +6,7 @@ import { UserRepository } from '../user/user.repository';
 import { CustomConflictException, CustomNotFoundException, CustomUnauthorizedException } from '../../common/exception/exception';
 import { ConfigService } from '@nestjs/config';
 import { RefreshTokenRepository } from '../refresh-token/refresh-token.repository';
-import ms from 'ms';
+import * as ms from 'ms';
 import { AuthIdentityRepository } from '../auth-identity/auth-identity.repository';
 import { Provider } from '../../common/enum/auth-identity.enum';
 

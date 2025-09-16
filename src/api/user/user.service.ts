@@ -6,6 +6,8 @@ import { CustomNotFoundException } from '../../common/exception/exception';
 import { PatchPostDTO } from '../life-legacy/dto/save.dto';
 import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
 import { UserIntroRepository } from '../user-intro/user-intro.repository';
+import { createCasePrompt } from '../../common/prompt/makeCase.prompt';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class UserService {
@@ -14,6 +16,7 @@ export class UserService {
     private userCaseRepository: UserCaseRepository,
     private lifeLegacyRepository: LifeLegacyRepository,
     private userIntroRepository: UserIntroRepository,
+    private aiService: AiService,
   ) {}
 
   async saveUserIntroduction(uuid: string, saveUserIntroDTO: SaveUserIntroDTO) {
@@ -22,7 +25,14 @@ export class UserService {
     const userIntroduction = await this.userIntroRepository.findUserIntroByUuid(uuid);
     if (userIntroduction) throw new ConflictException('Existing User Introduction');
 
-    return await this.userIntroRepository.saveUserIntro(uuid, userIntroText);
+    // AI 서버한테 유저 Introduction을 기준으로 CaseName 받기
+    // const prompt = createCasePrompt(userIntroText);
+    // const userCase = await this.aiService.getChatGPTData(prompt, 100);
+    // console.log('AI Server Response:', userCase);
+
+    // CaseName 저장하기 -> this.setUserCase 호출 + 유저 자기소개 데이터 저장 로직 트랜잭션 처리!!
+    await this.userIntroRepository.saveUserIntro(uuid, userIntroText);
+    await this.setUserCase(uuid, { caseName: 'case1' });
   }
 
   async getUserCase(uuid: string) {

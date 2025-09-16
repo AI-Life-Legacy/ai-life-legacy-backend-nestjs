@@ -30,7 +30,7 @@ export class UserCaseRepository {
         where: {
           id: caseId,
         },
-        relations: ['tocMappings.toc', 'tocMappings.toc.questions'],
+        relations: ['tocMappings', 'tocMappings.toc', 'tocMappings.toc.questions'],
       });
     } catch (err) {
       this.loggerService.warn(`User-Case/FindCaseByCaseName Error : ${err}`);

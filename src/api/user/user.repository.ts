@@ -25,17 +25,6 @@ export class UserRepository {
     }
   }
 
-  async findUserByEmail(email: string) {
-    try {
-      return await this.userRepository.findOne({
-        where: { email },
-      });
-    } catch (err) {
-      this.loggerService.warn(`User/FindUserByEmail Error : ${err}`);
-      throw new CustomInternalServerException(err);
-    }
-  }
-
   async createUser() {
     try {
       const user = await this.userRepository.create({});
@@ -46,7 +35,7 @@ export class UserRepository {
     }
   }
 
-  async saveUser(user: Users) {
+  async saveUser(user: User) {
     try {
       return await this.userRepository.save(user);
     } catch (err) {
@@ -55,23 +44,7 @@ export class UserRepository {
     }
   }
 
-  async updateUserRefreshToken(uuid: string, refreshToken: string) {
-    try {
-      return await this.userRepository.update(
-        {
-          uuid,
-        },
-        {
-          refreshToken,
-        },
-      );
-    } catch (err) {
-      console.error(err);
-      throw new CustomInternalServerException();
-    }
-  }
-
-  async deleteUser(user: Users) {
+  async deleteUser(user: User) {
     try {
       return await this.userRepository.softRemove(user);
     } catch (err) {

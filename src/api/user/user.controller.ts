@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
-import { SaveUserIntroDTO, SetUserCaseDTO, UserCaseDTO, UserContentAndQuestionsDTO, UserContentDTO } from './dto/user.dto';
+import { SaveUserIntroDTO, UserContentAndQuestionsDTO, UserContentDTO } from './dto/user.dto';
 import { Success204ResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -9,8 +9,8 @@ import { ApiSuccess204Response, ApiSuccessResponse } from '../../common/deco/api
 import { PatchPostDTO } from '../life-legacy/dto/save.dto';
 import { GetUUID } from '../../common/deco/get-user.decorator';
 
-@ApiTags('me')
-@Controller('me')
+@ApiTags('users/me')
+@Controller('users/me')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 export class UserController {
@@ -18,17 +18,8 @@ export class UserController {
 
   @Post('/intro')
   @ApiOperation({ summary: '유저 자기소개 저장하기 API' })
-  async saveIntro(@Body() saveUserIntroDTO: SaveUserIntroDTO, @Param('uuid', ParseUUIDPipe) uuid: string) {
+  async saveIntro(@Body() saveUserIntroDTO: SaveUserIntroDTO, @GetUUID() uuid: string) {
     return new SuccessResponseDTO(await this.userService.saveUserIntroduction(uuid, saveUserIntroDTO));
-  }
-
-  @Put('/case')
-  @ApiOperation({ summary: '유저 케이스 저장하기 API' })
-  @ApiBody({ type: SetUserCaseDTO })
-  @ApiSuccessResponse(UserCaseDTO)
-  @ApiDefaultResponses()
-  async setUserCase(@Body() setUserCaseDTO: SetUserCaseDTO, @GetUUID() uuid: string): Promise<SuccessResponseDTO<void>> {
-    return new SuccessResponseDTO(await this.userService.setUserCase(uuid, setUserCaseDTO));
   }
 
   @Get('/toc-questions')
