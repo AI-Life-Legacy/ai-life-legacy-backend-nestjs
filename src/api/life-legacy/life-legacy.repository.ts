@@ -11,17 +11,33 @@ export class LifeLegacyRepository {
     private loggerService: LoggerService,
   ) {}
 
-  async findUserAnswerByUuidAndQuestionId(uuid: string, questionId: number) {
+  async findOneUserAnswerByUuidAndQuestionId(uuid: string, tocId: number, questionId: number) {
     try {
       return await this.lifeLegacyRepository.findOne({
         where: {
           user: { uuid },
-          question: { id: questionId },
+          question: {
+            id: questionId,
+            toc: { id: tocId },
+          },
         },
       });
     } catch (err) {
       this.loggerService.warn(`Post/FindUserAnswerByUuidAndQuestionId Error : ${err}`);
       throw new CustomInternalServerException(err);
+    }
+  }
+
+  async findAllUserAnswersByUuid(uuid: string) {
+    try {
+      return await this.lifeLegacyRepository.find({
+        where: {
+          user: { uuid },
+        },
+        relations: ['question'],
+      });
+    } catch (err) {
+      this.loggerService.warn(`Post/FindAllUserAnswersByUuid Error : ${err}`);
     }
   }
 

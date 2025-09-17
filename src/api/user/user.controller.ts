@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { SaveUserIntroDTO, SaveUserWithdrawalDTO, UserContentAndQuestionsDTO, UserContentDTO } from './dto/user.dto';
 import { Success204ResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
@@ -22,6 +22,12 @@ export class UserController {
     return new SuccessResponseDTO(await this.userService.saveUserIntroduction(uuid, saveUserIntroDTO));
   }
 
+  @Get('/toc')
+  @ApiOperation({ summary: '유저 맞춤형 목차 및 퍼센테이지 불러오기 API' })
+  async getUserToc(@GetUUID() uuid: string) {
+    return new SuccessResponseDTO(await this.userService.getUserToc(uuid));
+  }
+
   @Get('/toc-questions')
   @ApiOperation({ summary: '유저 맞춤형 목차 및 질문 불러오기 API' })
   @ApiSuccessResponse(UserContentDTO, true)
@@ -34,11 +40,10 @@ export class UserController {
   @ApiOperation({ summary: '유저가 작성한 답변 불러오기 API' })
   @ApiSuccessResponse(UserContentAndQuestionsDTO)
   @ApiDefaultResponses()
-  async getUserAnswer(@Query('questionId', ParseIntPipe) questionId: number, @GetUUID() uuid: string) {
-    return new SuccessResponseDTO(await this.userService.getUserAnswer(questionId, uuid));
+  async getUserAnswer(@Query('questionId', ParseIntPipe) questionId: number, @Query('tocId', ParseIntPipe) tocId: number, @GetUUID() uuid: string) {
+    return new SuccessResponseDTO(await this.userService.getUserAnswer(questionId, tocId, uuid));
   }
 
-  // 수정 필요 -> 유저가 작성한 자서전 내용 업데이트 API
   @Patch('/answers/:answerId')
   @ApiOperation({ summary: '유저가 작성한 자서전 내용 업데이트하기 API' })
   @ApiBody({ type: PatchPostDTO })

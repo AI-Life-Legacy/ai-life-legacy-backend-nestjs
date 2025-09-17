@@ -13,6 +13,7 @@ import { RefreshTokenModule } from './api/refresh-token/refresh-token.module';
 import { AuthIdentityModule } from './api/auth-identity/auth-identity.module';
 import { UserIntroModule } from './api/user-intro/user-intro.module';
 import { UserWithdrawalModule } from './api/user-withdrawal/user-withdrawal.module';
+import { LifeLegacyQuestionModule } from './api/life-legacy-question/life-legacy-question.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { UserWithdrawalModule } from './api/user-withdrawal/user-withdrawal.modu
     AuthIdentityModule,
     UserIntroModule,
     UserWithdrawalModule,
+    LifeLegacyQuestionModule,
   ],
   controllers: [AppController],
 })
