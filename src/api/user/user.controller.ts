@@ -62,7 +62,7 @@ export class UserController {
   @ApiOperation({ summary: '회원탈퇴 API' })
   @ApiSuccess204Response
   @ApiDefaultResponses()
-  async deleteUser(@GetUUID() uuid: string, @Body() withdrawalDTO: SaveUserWithdrawalDTO){
+  async deleteUser(@GetUUID() uuid: string, @Body() withdrawalDTO: SaveUserWithdrawalDTO) {
     await this.userService.deleteUser(uuid, withdrawalDTO);
     return new Success204ResponseDTO();
   }

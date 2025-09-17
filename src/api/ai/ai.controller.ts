@@ -16,16 +16,6 @@ import { ApiDefaultResponses } from '../../common/deco/api-default-response.deco
 export class AiController {
   constructor(private chatGptService: AiService) {}
 
-  @Post('/case')
-  @ApiOperation({ summary: '유저 케이스 분류 AI API' })
-  @ApiSuccessResponse(AIResponseDTO)
-  @ApiDefaultResponses()
-  async makeCase(@Body() makeCaseDTO: MakeCaseDTO): Promise<SuccessResponseDTO<AIResponseDTO>> {
-    const CHATGPTTOKEN = 100;
-    const prompt = createCasePrompt(makeCaseDTO.data);
-    return new SuccessResponseDTO(await this.chatGptService.getChatGPTData(prompt, CHATGPTTOKEN));
-  }
-
   @Post('/question')
   @ApiOperation({ summary: '2차 질문 생성 AI API' })
   @ApiSuccessResponse(AIResponseDTO)
