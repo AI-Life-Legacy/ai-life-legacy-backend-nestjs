@@ -1,11 +1,9 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
-import { SaveUserIntroDTO, SaveUserWithdrawalDTO, UserContentAndQuestionsDTO, UserContentDTO } from './dto/user.dto';
+import { SaveUserIntroDTO, SaveUserWithdrawalDTO } from './dto/user.dto';
 import { Success204ResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiDefaultResponses } from '../../common/deco/api-default-response.deco';
-import { ApiSuccess204Response, ApiSuccessResponse } from '../../common/deco/api-paginated-response.deco';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PatchPostDTO } from '../life-legacy/dto/save.dto';
 import { GetUUID } from '../../common/deco/get-user.decorator';
 
@@ -30,25 +28,18 @@ export class UserController {
 
   @Get('/toc-questions')
   @ApiOperation({ summary: '유저 맞춤형 목차 및 질문 불러오기 API' })
-  @ApiSuccessResponse(UserContentDTO, true)
-  @ApiDefaultResponses()
   async getUserContents(@GetUUID() uuid: string) {
     return new SuccessResponseDTO(await this.userService.getUserTocAndQuestions(uuid));
   }
 
   @Get('/answers')
   @ApiOperation({ summary: '유저가 작성한 답변 불러오기 API' })
-  @ApiSuccessResponse(UserContentAndQuestionsDTO)
-  @ApiDefaultResponses()
   async getUserAnswer(@Query('questionId', ParseIntPipe) questionId: number, @Query('tocId', ParseIntPipe) tocId: number, @GetUUID() uuid: string) {
     return new SuccessResponseDTO(await this.userService.getUserAnswer(questionId, tocId, uuid));
   }
 
   @Patch('/answers/:answerId')
   @ApiOperation({ summary: '유저가 작성한 자서전 내용 업데이트하기 API' })
-  @ApiBody({ type: PatchPostDTO })
-  @ApiSuccess204Response
-  @ApiDefaultResponses()
   async updateUserAnswer(
     @Body() patchPostDTO: PatchPostDTO,
     @Param('answerId', ParseIntPipe) answerId: number,
@@ -60,8 +51,6 @@ export class UserController {
 
   @Delete('/')
   @ApiOperation({ summary: '회원탈퇴 API' })
-  @ApiSuccess204Response
-  @ApiDefaultResponses()
   async deleteUser(@GetUUID() uuid: string, @Body() withdrawalDTO: SaveUserWithdrawalDTO) {
     await this.userService.deleteUser(uuid, withdrawalDTO);
     return new Success204ResponseDTO();

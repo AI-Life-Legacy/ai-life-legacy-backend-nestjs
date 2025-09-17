@@ -3,9 +3,7 @@ import { LifeLegacyService } from './life-legacy.service';
 import { SavePostDTO } from './dto/save.dto';
 import { Success204ResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
-import { ApiBearerAuth, ApiBody, ApiOperation } from '@nestjs/swagger';
-import { ApiSuccess204Response } from '../../common/deco/api-paginated-response.deco';
-import { ApiDefaultResponses } from '../../common/deco/api-default-response.deco';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { GetUUID } from '../../common/deco/get-user.decorator';
 
 @Controller('life-legacy')

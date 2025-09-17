@@ -12,25 +12,18 @@ export class AuthController {
 
   @Post('/signup')
   @ApiOperation({ summary: '회원가입 API' })
-  @ApiConflictResponse({ description: 'Conflict', type: ConflictResponseDTO })
-  @ApiSuccess201Response(JwtTokenResponseDto)
-  @ApiDefaultResponses()
   async signup(@Body() authCredentialsDto: AuthCredentialsDto): Promise<Success201ResponseDTO<JwtTokenResponseDto>> {
     return new SuccessResponseDTO(await this.authService.signup(authCredentialsDto));
   }
 
   @Post('/signin')
   @ApiOperation({ summary: '로그인 API' })
-  @ApiSuccessResponse(JwtTokenResponseDto)
-  @ApiDefaultResponses()
   async signIn(@Body() authCredentialsDto: AuthCredentialsDto): Promise<SuccessResponseDTO<JwtTokenResponseDto>> {
     return new SuccessResponseDTO(await this.authService.signIn(authCredentialsDto));
   }
 
   @Post('/refresh')
   @ApiOperation({ summary: '리프레시 API' })
-  @ApiSuccessResponse(JwtTokenResponseDto)
-  @ApiDefaultResponses()
   async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<SuccessResponseDTO<JwtTokenResponseDto>> {
     return new SuccessResponseDTO(await this.authService.refresh(refreshTokenDto));
   }
