@@ -7,7 +7,7 @@ import { UserIntro } from './user-intro.entity';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('uuid')   // ✅ uuid 자동 생성
+  @PrimaryGeneratedColumn('uuid') // ✅ uuid 자동 생성
   uuid: string;
 
   @CreateDateColumn({ name: 'created_at' })

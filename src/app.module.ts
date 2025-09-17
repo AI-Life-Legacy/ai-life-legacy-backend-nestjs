@@ -12,6 +12,7 @@ import { LoggerModule } from './api/logger/logger.module';
 import { RefreshTokenModule } from './api/refresh-token/refresh-token.module';
 import { AuthIdentityModule } from './api/auth-identity/auth-identity.module';
 import { UserIntroModule } from './api/user-intro/user-intro.module';
+import { UserWithdrawalModule } from './api/user-withdrawal/user-withdrawal.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { UserIntroModule } from './api/user-intro/user-intro.module';
     RefreshTokenModule,
     AuthIdentityModule,
     UserIntroModule,
+    UserWithdrawalModule,
   ],
   controllers: [AppController],
 })

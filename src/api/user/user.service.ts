@@ -1,13 +1,13 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { UserCaseRepository } from '../user-case/user-case.repository';
-import { SaveUserIntroDTO, SetUserCaseDTO } from './dto/user.dto';
+import { SaveUserIntroDTO, SaveUserWithdrawalDTO, SetUserCaseDTO } from './dto/user.dto';
 import { CustomNotFoundException } from '../../common/exception/exception';
 import { PatchPostDTO } from '../life-legacy/dto/save.dto';
 import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
 import { UserIntroRepository } from '../user-intro/user-intro.repository';
-import { createCasePrompt } from '../../common/prompt/makeCase.prompt';
 import { AiService } from '../ai/ai.service';
+import { UserWithdrawalRepository } from '../user-withdrawal/user-withdrawal.repository';
 
 @Injectable()
 export class UserService {
@@ -17,6 +17,7 @@ export class UserService {
     private lifeLegacyRepository: LifeLegacyRepository,
     private userIntroRepository: UserIntroRepository,
     private aiService: AiService,
+    private userWithdrawalRepository: UserWithdrawalRepository,
   ) {}
 
   async saveUserIntroduction(uuid: string, saveUserIntroDTO: SaveUserIntroDTO) {
@@ -78,10 +79,14 @@ export class UserService {
     await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, updateAnswer);
   }
 
-  async deleteUser(uuid: string) {
+  async deleteUser(uuid: string, withdrawalDTO: SaveUserWithdrawalDTO) {
+    const { withdrawalReason, withdrawalText } = withdrawalDTO;
+
     const user = await this.userRepository.findUserByUUID(uuid);
     if (!user) throw new CustomNotFoundException('Not Found User');
 
+    // 트랜잭션 처리 필요
+    await this.userWithdrawalRepository.saveUserWithdrawal(uuid, withdrawalReason, withdrawalText);
     await this.userRepository.deleteUser(user);
   }
 }

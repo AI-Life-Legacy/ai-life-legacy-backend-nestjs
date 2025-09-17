@@ -1,5 +1,6 @@
 import { IsArray, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { WithdrawalReasonCode } from '../../../common/enum/user-withdrawal.enum';
 
 export class SetUserCaseDTO {
   @ApiProperty({ example: 'case1', description: '유저 케이스 이름' })
@@ -77,4 +78,16 @@ export class SaveUserIntroDTO {
   @IsNotEmpty()
   @IsString()
   userIntroText: string;
+}
+
+export class SaveUserWithdrawalDTO {
+  @ApiProperty({ description: '탈퇴 이유', example: '~~~' })
+  @IsNotEmpty()
+  @IsString()
+  withdrawalReason: WithdrawalReasonCode;
+
+  @ApiProperty({ description: '기타 선택시 텍스트 작성', example: '~~~' })
+  @IsNotEmpty()
+  @IsString()
+  withdrawalText: string;
 }

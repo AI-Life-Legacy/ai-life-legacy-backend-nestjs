@@ -8,9 +8,10 @@ import { LifeLegacyModule } from '../life-legacy/life-legacy.module';
 import { User } from '../../db/entity/user.entity';
 import { UserIntroModule } from '../user-intro/user-intro.module';
 import { AiModule } from '../ai/ai.module';
+import { UserWithdrawalModule } from '../user-withdrawal/user-withdrawal.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), LifeLegacyModule, UserCaseModule, UserIntroModule, AiModule],
+  imports: [TypeOrmModule.forFeature([User]), LifeLegacyModule, UserCaseModule, UserIntroModule, AiModule, UserWithdrawalModule],
   controllers: [UserController],
   providers: [UserService, UserRepository],
   exports: [UserService, UserRepository],

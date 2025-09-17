@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
-import { SaveUserIntroDTO, UserContentAndQuestionsDTO, UserContentDTO } from './dto/user.dto';
+import { SaveUserIntroDTO, SaveUserWithdrawalDTO, UserContentAndQuestionsDTO, UserContentDTO } from './dto/user.dto';
 import { Success204ResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -57,8 +57,8 @@ export class UserController {
   @ApiOperation({ summary: '회원탈퇴 API' })
   @ApiSuccess204Response
   @ApiDefaultResponses()
-  async deleteUser(@GetUUID() uuid: string){
-    await this.userService.deleteUser(uuid);
+  async deleteUser(@GetUUID() uuid: string, @Body() withdrawalDTO: SaveUserWithdrawalDTO){
+    await this.userService.deleteUser(uuid, withdrawalDTO);
     return new Success204ResponseDTO();
   }
 }
