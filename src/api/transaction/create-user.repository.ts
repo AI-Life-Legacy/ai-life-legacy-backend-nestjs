@@ -23,6 +23,7 @@ export class CreateUserRepository {
 
       const newUser = userRepo.create();
       if (!newUser) throw new Error();
+      await userRepo.save(newUser);
 
       await authIdentityRepo.save({
         user: newUser,
