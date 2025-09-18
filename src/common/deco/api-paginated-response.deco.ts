@@ -1,6 +1,6 @@
 import { applyDecorators, Type } from '@nestjs/common';
 import { ApiExtraModels, ApiOkResponse, getSchemaPath } from '@nestjs/swagger';
-import { Success201ResponseDTO, Success204ResponseDTO, SuccessResponseDTO } from '../response/response.dto';
+import { Success201ResponseDTO, SuccessResponseDTO } from '../response/response.dto';
 
 export const ApiSuccessResponse = <TModel extends Type<any>>(model: TModel, isArray = false) => {
   return applyDecorators(
@@ -41,12 +41,3 @@ export const ApiSuccess201Response = <TModel extends Type<any>>(model: TModel, i
     }),
   );
 };
-
-export const ApiSuccess204Response = applyDecorators(
-  ApiExtraModels(Success204ResponseDTO),
-  ApiOkResponse({
-    schema: {
-      allOf: [{ $ref: getSchemaPath(Success204ResponseDTO) }],
-    },
-  }),
-);

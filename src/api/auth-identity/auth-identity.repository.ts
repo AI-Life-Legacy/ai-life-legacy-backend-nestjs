@@ -13,20 +13,6 @@ export class AuthIdentityRepository {
     private readonly loggerService: LoggerService,
   ) {}
 
-  async saveAuthIdentity(uuid: string, provider: Provider, providerUuid: string, passwordHash?: string) {
-    try {
-      await this.authIdentityRepository.save({
-        user: { uuid },
-        provider,
-        providerUuid,
-        passwordHash,
-      });
-    } catch (err) {
-      this.loggerService.warn(`AuthIdentity/SaveAuthIdentity Error : ${err}`);
-      throw new InternalServerErrorException(err);
-    }
-  }
-
   async findAuthIdentityByProviderUuid(providerUuid: string) {
     try {
       return await this.authIdentityRepository.findOne({

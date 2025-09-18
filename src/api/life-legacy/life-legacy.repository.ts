@@ -1,8 +1,8 @@
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CustomInternalServerException } from '../../common/exception/exception';
 import { LoggerService } from '../logger/logger.service';
 import { LifeLegacyAnswer } from '../../db/entity/life-legacy-answer.entity';
+import { InternalServerErrorException } from '@nestjs/common';
 
 export class LifeLegacyRepository {
   constructor(
@@ -24,7 +24,7 @@ export class LifeLegacyRepository {
       });
     } catch (err) {
       this.loggerService.warn(`Post/FindUserAnswerByUuidAndQuestionId Error : ${err}`);
-      throw new CustomInternalServerException(err);
+      throw new InternalServerErrorException(err);
     }
   }
 
@@ -38,6 +38,7 @@ export class LifeLegacyRepository {
       });
     } catch (err) {
       this.loggerService.warn(`Post/FindAllUserAnswersByUuid Error : ${err}`);
+      throw new InternalServerErrorException(err);
     }
   }
 
@@ -50,7 +51,7 @@ export class LifeLegacyRepository {
       });
     } catch (err) {
       this.loggerService.warn(`Post/saveUserAnswer Error : ${err}`);
-      throw new CustomInternalServerException(err);
+      throw new InternalServerErrorException(err);
     }
   }
 }

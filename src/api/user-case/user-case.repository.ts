@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserCase } from 'src/db/entity/user-case.entity';
 import { Repository } from 'typeorm';
 import { LoggerService } from '../logger/logger.service';
-import { CustomInternalServerException } from '../../common/exception/exception';
 
 @Injectable()
 export class UserCaseRepository {
@@ -20,7 +19,7 @@ export class UserCaseRepository {
       });
     } catch (err) {
       this.loggerService.warn(`User-Case/FindCaseByCaseName Error : ${err}`);
-      throw new CustomInternalServerException(err);
+      throw new InternalServerErrorException(err);
     }
   }
 
@@ -34,7 +33,7 @@ export class UserCaseRepository {
       });
     } catch (err) {
       this.loggerService.warn(`User-Case/FindCaseByCaseName Error : ${err}`);
-      throw new CustomInternalServerException(err);
+      throw new InternalServerErrorException(err);
     }
   }
 }

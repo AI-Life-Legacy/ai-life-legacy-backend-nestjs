@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Repository } from 'typeorm';
-import { CustomNotFoundException } from '../../common/exception/exception';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../logger/logger.service';
 import { User } from '../../db/entity/user.entity';
@@ -28,7 +27,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const user: User = await this.userRepository.findOne({ where: { uuid } });
     if (!user) {
       this.loggerService.warn(`JWT/ Validate Error : User with UUID ${uuid} not found.`);
-      throw new CustomNotFoundException('Not Found User');
+      throw new NotFoundException('Not Found User');
     }
     return user;
   }

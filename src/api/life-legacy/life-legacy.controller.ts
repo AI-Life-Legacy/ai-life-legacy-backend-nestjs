@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 import { LifeLegacyService } from './life-legacy.service';
 import { SavePostDTO } from './dto/save.dto';
-import { Success204ResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
+import { SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { GetUUID } from '../../common/deco/get-user.decorator';
@@ -27,6 +27,6 @@ export class LifeLegacyController {
     @GetUUID() uuid: string,
   ) {
     await this.lifeLegacyService.saveUserTocQuestionAnswer(uuid, tocId, questionId, savePostDTO);
-    return new Success204ResponseDTO();
+    return new SuccessResponseDTO();
   }
 }

@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { SaveUserIntroDTO, SaveUserWithdrawalDTO } from './dto/user.dto';
-import { Success204ResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
+import { SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PatchPostDTO } from '../life-legacy/dto/save.dto';
@@ -40,19 +40,15 @@ export class UserController {
 
   @Patch('/answers/:answerId')
   @ApiOperation({ summary: '유저가 작성한 자서전 내용 업데이트하기 API' })
-  async updateUserAnswer(
-    @Body() patchPostDTO: PatchPostDTO,
-    @Param('answerId', ParseIntPipe) answerId: number,
-    @GetUUID() uuid: string,
-  ): Promise<Success204ResponseDTO> {
+  async updateUserAnswer(@Body() patchPostDTO: PatchPostDTO, @Param('answerId', ParseIntPipe) answerId: number, @GetUUID() uuid: string) {
     await this.userService.updatePost(uuid, answerId, patchPostDTO);
-    return new Success204ResponseDTO();
+    return new SuccessResponseDTO();
   }
 
   @Delete('/')
   @ApiOperation({ summary: '회원탈퇴 API' })
   async deleteUser(@GetUUID() uuid: string, @Body() withdrawalDTO: SaveUserWithdrawalDTO) {
     await this.userService.deleteUser(uuid, withdrawalDTO);
-    return new Success204ResponseDTO();
+    return new SuccessResponseDTO();
   }
 }

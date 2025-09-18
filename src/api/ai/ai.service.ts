@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import OpenAI from 'openai';
-import { CustomInternalServerException } from '../../common/exception/exception';
 import { ConfigService } from '@nestjs/config';
 import { AIResponseDTO } from './dto/ai.dto';
 import { LoggerService } from '../logger/logger.service';
@@ -34,7 +33,7 @@ export class AiService {
       return { content: response.choices[0]?.message.content };
     } catch (err) {
       this.loggerService.warn(`Chat GPT API Error : ${err}`);
-      throw new CustomInternalServerException(err);
+      throw new InternalServerErrorException(err);
     }
   }
 }

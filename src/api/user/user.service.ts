@@ -1,8 +1,7 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { UserCaseRepository } from '../user-case/user-case.repository';
 import { SaveUserIntroDTO, SaveUserWithdrawalDTO, SetUserCaseDTO } from './dto/user.dto';
-import { CustomNotFoundException } from '../../common/exception/exception';
 import { PatchPostDTO } from '../life-legacy/dto/save.dto';
 import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
 import { UserIntroRepository } from '../user-intro/user-intro.repository';
@@ -38,23 +37,23 @@ export class UserService {
 
   async getUserCase(uuid: string) {
     const user = await this.userRepository.findUserByUUID(uuid);
-    if (!user) throw new CustomNotFoundException('Not Found User');
+    if (!user) throw new NotFoundException('Not Found User');
     return { caseId: user.userCase.id };
   }
 
   async setUserCase(uuid: string, setUserCaseDTO: SetUserCaseDTO) {
     const { caseName } = setUserCaseDTO;
     const user = await this.userRepository.findUserByUUID(uuid);
-    if (!user) throw new CustomNotFoundException('Not Found User');
+    if (!user) throw new NotFoundException('Not Found User');
 
     // 케이스네임으로 UserCase에 접근해서 해당 caseName 있는지 확인
     const userCase = await this.userCaseRepository.findCaseByCaseName(caseName);
-    if (!userCase) throw new CustomNotFoundException('Not Found Case, Check CaseName');
+    if (!userCase) throw new NotFoundException('Not Found Case, Check CaseName');
 
     // 있으면 해당 caseId를 user_case(FK)에 저장
     user.userCase = userCase;
 
-    return await this.userRepository.saveUser(user);
+    await this.userRepository.saveUser(user);
   }
 
   async getUserToc(uuid: string) {
@@ -103,7 +102,7 @@ export class UserService {
     const { questionId, tocId, updateAnswer } = patchPostDto;
 
     const userAnswer = await this.lifeLegacyRepository.findOneUserAnswerByUuidAndQuestionId(uuid, tocId, questionId);
-    if (!userAnswer) throw new CustomNotFoundException('Not Found User Answer');
+    if (!userAnswer) throw new NotFoundException('Not Found User Answer');
 
     await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, updateAnswer);
   }
@@ -112,7 +111,7 @@ export class UserService {
     const { withdrawalReason, withdrawalText } = withdrawalDTO;
 
     const user = await this.userRepository.findUserByUUID(uuid);
-    if (!user) throw new CustomNotFoundException('Not Found User');
+    if (!user) throw new NotFoundException('Not Found User');
 
     // 트랜잭션 처리 필요
     await this.userWithdrawalRepository.saveUserWithdrawal(uuid, withdrawalReason, withdrawalText);

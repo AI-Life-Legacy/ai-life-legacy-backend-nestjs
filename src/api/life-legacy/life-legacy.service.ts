@@ -1,10 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { SavePostDTO } from './dto/save.dto';
 import { LifeLegacyRepository } from './life-legacy.repository';
-import { LifeLegacyQuestionModule } from '../life-legacy-question/life-legacy-question.module';
 import { LifeLegacyQuestionRepository } from '../life-legacy-question/life-legacy-question.repository';
-import { UserCaseRepository } from '../user-case/user-case.repository';
-import { UserService } from '../user/user.service';
 
 @Injectable()
 export class LifeLegacyService {

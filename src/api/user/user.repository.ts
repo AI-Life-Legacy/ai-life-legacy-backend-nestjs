@@ -1,8 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/db/entity/user.entity';
 import { Repository } from 'typeorm';
-import { CustomInternalServerException } from '../../common/exception/exception';
 import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
@@ -21,17 +20,7 @@ export class UserRepository {
       });
     } catch (err) {
       this.loggerService.warn(`User/FindUserByUUID Error : ${err}`);
-      throw new CustomInternalServerException(err);
-    }
-  }
-
-  async createUser() {
-    try {
-      const user = await this.userRepository.create({});
-      return await this.userRepository.save(user);
-    } catch (err) {
-      console.error(err);
-      throw new CustomInternalServerException();
+      throw new InternalServerErrorException(err);
     }
   }
 
@@ -39,8 +28,8 @@ export class UserRepository {
     try {
       return await this.userRepository.save(user);
     } catch (err) {
-      console.error(err);
-      throw new CustomInternalServerException();
+      this.loggerService.warn(`User/SaveUser Error : ${err}`);
+      throw new InternalServerErrorException(err);
     }
   }
 
@@ -48,8 +37,8 @@ export class UserRepository {
     try {
       return await this.userRepository.softRemove(user);
     } catch (err) {
-      console.error('Error deleting user:', err);
-      throw new CustomInternalServerException();
+      this.loggerService.warn(`User/DeleteUser Error : ${err}`);
+      throw new InternalServerErrorException(err);
     }
   }
 }

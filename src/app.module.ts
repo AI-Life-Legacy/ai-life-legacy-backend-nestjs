@@ -14,6 +14,7 @@ import { AuthIdentityModule } from './api/auth-identity/auth-identity.module';
 import { UserIntroModule } from './api/user-intro/user-intro.module';
 import { UserWithdrawalModule } from './api/user-withdrawal/user-withdrawal.module';
 import { LifeLegacyQuestionModule } from './api/life-legacy-question/life-legacy-question.module';
+import { TransactionModule } from './api/transaction/transaction.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { LifeLegacyQuestionModule } from './api/life-legacy-question/life-legacy
     UserIntroModule,
     UserWithdrawalModule,
     LifeLegacyQuestionModule,
+    TransactionModule,
   ],
   controllers: [AppController],
 })
