@@ -1,12 +1,14 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { UserCaseRepository } from '../user-case/user-case.repository';
-import { SaveUserIntroDTO, SaveUserWithdrawalDTO, SetUserCaseDTO } from './dto/user.dto';
-import { PatchPostDTO } from '../life-legacy/dto/save.dto';
 import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
 import { UserIntroRepository } from '../user-intro/user-intro.repository';
 import { AiService } from '../ai/ai.service';
 import { UserWithdrawalRepository } from '../user-withdrawal/user-withdrawal.repository';
+import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO } from './dto/request/user.dto';
+import { SaveUserIntroductionRepository } from '../transaction/save-user-introduction.repository';
+import { TocWithQuestionsDTO, UserAnswerResponseDTO } from './dto/response/user.dto';
+import { DeleteUserRepository } from '../transaction/delete-user.repository';
 
 @Injectable()
 export class UserService {
@@ -17,6 +19,8 @@ export class UserService {
     private userIntroRepository: UserIntroRepository,
     private aiService: AiService,
     private userWithdrawalRepository: UserWithdrawalRepository,
+    private saveUserTransactionRepository: SaveUserIntroductionRepository,
+    private deleteUserTransactionRepository: DeleteUserRepository,
   ) {}
 
   async saveUserIntroduction(uuid: string, saveUserIntroDTO: SaveUserIntroDTO) {
@@ -27,33 +31,15 @@ export class UserService {
 
     // AI 서버한테 유저 Introduction을 기준으로 CaseName 받기
     // const prompt = createCasePrompt(userIntroText);
-    // const userCase = await this.aiService.getChatGPTData(prompt, 100);
-    // console.log('AI Server Response:', userCase);
+    const userCase = 'case1'; // await this.aiService.getChatGPTData(prompt, 100);
 
-    // CaseName 저장하기 -> this.setUserCase 호출 + 유저 자기소개 데이터 저장 로직 트랜잭션 처리!!
-    await this.userIntroRepository.saveUserIntro(uuid, userIntroText);
-    await this.setUserCase(uuid, { caseName: 'case1' });
+    await this.saveUserTransactionRepository.saveUserIntroduction(userCase, userIntroText, uuid);
   }
 
   async getUserCase(uuid: string) {
     const user = await this.userRepository.findUserByUUID(uuid);
     if (!user) throw new NotFoundException('Not Found User');
     return { caseId: user.userCase.id };
-  }
-
-  async setUserCase(uuid: string, setUserCaseDTO: SetUserCaseDTO) {
-    const { caseName } = setUserCaseDTO;
-    const user = await this.userRepository.findUserByUUID(uuid);
-    if (!user) throw new NotFoundException('Not Found User');
-
-    // 케이스네임으로 UserCase에 접근해서 해당 caseName 있는지 확인
-    const userCase = await this.userCaseRepository.findCaseByCaseName(caseName);
-    if (!userCase) throw new NotFoundException('Not Found Case, Check CaseName');
-
-    // 있으면 해당 caseId를 user_case(FK)에 저장
-    user.userCase = userCase;
-
-    await this.userRepository.saveUser(user);
   }
 
   async getUserToc(uuid: string) {
@@ -85,9 +71,20 @@ export class UserService {
     });
   }
 
-  async getUserTocAndQuestions(uuid: string) {
+  async getUserTocAndQuestions(uuid: string): Promise<TocWithQuestionsDTO[]> {
     const { caseId } = await this.getUserCase(uuid);
-    return await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
+    const tocAndQuestions = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
+
+    return tocAndQuestions.tocMappings.map((mapping) => ({
+      tocId: mapping.toc.id,
+      tocTitle: mapping.toc.title,
+      orderIndex: mapping.toc.orderIndex,
+      questions: mapping.toc.questions.map((q) => ({
+        id: q.id,
+        questionText: q.questionText,
+        orderIndex: q.orderIndex,
+      })),
+    }));
   }
 
   async getUserAnswer(questionId: number, tocId: number, uuid: string) {
@@ -95,7 +92,8 @@ export class UserService {
     const userAnswer = await this.lifeLegacyRepository.findOneUserAnswerByUuidAndQuestionId(uuid, tocId, questionId);
     // 이 로직은 추후에 바뀔 수 있음 -> 유저의 작성 데이터를 언제 보여주느냐에 따라 바뀔 듯. (만약 다 작성한 다음에 접근할 수 있다면 오류를 뱉는 것이 옳음
     if (!userAnswer) return '';
-    return userAnswer;
+
+    return new UserAnswerResponseDTO(userAnswer);
   }
 
   async updatePost(uuid: string, answerId: number, patchPostDto: PatchPostDTO) {
@@ -113,8 +111,6 @@ export class UserService {
     const user = await this.userRepository.findUserByUUID(uuid);
     if (!user) throw new NotFoundException('Not Found User');
 
-    // 트랜잭션 처리 필요
-    await this.userWithdrawalRepository.saveUserWithdrawal(uuid, withdrawalReason, withdrawalText);
-    await this.userRepository.deleteUser(user);
+    await this.deleteUserTransactionRepository.deleteUser(uuid, withdrawalReason, withdrawalText);
   }
 }

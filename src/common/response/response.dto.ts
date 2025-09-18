@@ -22,6 +22,20 @@ export class SuccessResponseDTO<T> {
     this.result = result;
   }
 }
+
+export class SuccessNoResultResponseDTO {
+  @ApiProperty({ example: 'Success' })
+  message: string;
+
+  @ApiProperty({ example: 200 })
+  statusCode: number;
+
+  constructor() {
+    this.message = 'Success';
+    this.statusCode = 200;
+  }
+}
+
 export class Success201ResponseDTO<T> {
   @ApiProperty({
     description: 'HTTP 상태 코드',
@@ -43,4 +57,18 @@ export class Success201ResponseDTO<T> {
     this.message = message;
     this.result = result;
   }
+}
+
+export class ErrorResponseDTO {
+  @ApiProperty({
+    description: 'HTTP 상태 코드',
+    example: 400,
+  })
+  status: number;
+
+  @ApiProperty({
+    description: '에러 메시지',
+    example: 'Bad Request',
+  })
+  message: string;
 }

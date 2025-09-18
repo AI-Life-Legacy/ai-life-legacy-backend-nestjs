@@ -9,9 +9,10 @@ import { User } from '../../db/entity/user.entity';
 import { UserIntroModule } from '../user-intro/user-intro.module';
 import { AiModule } from '../ai/ai.module';
 import { UserWithdrawalModule } from '../user-withdrawal/user-withdrawal.module';
+import { TransactionModule } from '../transaction/transaction.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), LifeLegacyModule, UserCaseModule, UserIntroModule, AiModule, UserWithdrawalModule],
+  imports: [TypeOrmModule.forFeature([User]), LifeLegacyModule, UserCaseModule, UserIntroModule, AiModule, UserWithdrawalModule, TransactionModule],
   controllers: [UserController],
   providers: [UserService, UserRepository],
   exports: [UserService, UserRepository],

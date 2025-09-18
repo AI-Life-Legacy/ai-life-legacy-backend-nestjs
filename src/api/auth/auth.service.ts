@@ -1,5 +1,4 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { JwtTokenResponseDto, LoginDTO, RefreshTokenDto, SignupDTO } from './dto/auth.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -9,6 +8,8 @@ import { AuthIdentityRepository } from '../auth-identity/auth-identity.repositor
 import { Provider } from '../../common/enum/auth-identity.enum';
 import { CreateUserRepository } from '../transaction/create-user.repository';
 import { LoggerService } from '../logger/logger.service';
+import { LoginDTO, RefreshTokenDto, SignupDTO } from './dto/request/auth.dto';
+import { JwtTokenResponseDTO } from './dto/response/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -53,7 +54,7 @@ export class AuthService {
     }
   }
 
-  async signup(signupDTO: SignupDTO): Promise<JwtTokenResponseDto> {
+  async signup(signupDTO: SignupDTO): Promise<JwtTokenResponseDTO> {
     const { email, password } = signupDTO;
 
     const existingUser = await this.authIdentityRepository.findAuthIdentityByProviderUuid(email);
@@ -72,7 +73,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async login(loginDTO: LoginDTO): Promise<JwtTokenResponseDto> {
+  async login(loginDTO: LoginDTO): Promise<JwtTokenResponseDTO> {
     const { email, password } = loginDTO;
 
     const userAuthIdentity = await this.authIdentityRepository.findAuthIdentityByProviderUuid(email);

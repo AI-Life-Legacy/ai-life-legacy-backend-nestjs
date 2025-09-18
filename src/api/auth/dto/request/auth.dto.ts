@@ -25,18 +25,6 @@ export class LoginDTO {
   password: string;
 }
 
-export class JwtTokenResponseDto {
-  @ApiProperty({ description: 'accessToken', example: 'accessToken' })
-  @IsNotEmpty()
-  @IsString()
-  accessToken: string;
-
-  @ApiProperty({ description: 'refreshToken', example: 'refreshToken' })
-  @IsNotEmpty()
-  @IsString()
-  refreshToken: string;
-}
-
 export class RefreshTokenDto {
   @ApiProperty({ description: 'refreshToken', example: 'refreshToken' })
   @IsNotEmpty()
