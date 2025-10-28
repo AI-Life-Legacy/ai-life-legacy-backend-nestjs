@@ -10,9 +10,6 @@ export class Question {
   @Column({ name: 'question_text', type: 'varchar', length: 500 })
   questionText: string;
 
-  @Column({ name: 'order_index', type: 'int' })
-  orderIndex: number;
-
   @ManyToOne(() => TableOfContent, (toc) => toc.questions, { onDelete: 'CASCADE' })
   toc: TableOfContent;
 

@@ -10,9 +10,6 @@ export class TableOfContent {
   @Column({ type: 'varchar', length: 255 })
   title: string;
 
-  @Column({ name: 'order_index', type: 'int' })
-  orderIndex: number;
-
   @OneToMany(() => Question, (question) => question.toc)
   questions: Question[];
 

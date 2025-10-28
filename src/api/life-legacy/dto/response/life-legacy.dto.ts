@@ -14,15 +14,8 @@ export class QuestionResponseDTO {
   })
   questionText: string;
 
-  @ApiProperty({
-    example: 1,
-    description: '질문의 순서 (toc 내에서의 인덱스)',
-  })
-  orderIndex: number;
-
   constructor(question: Question) {
     this.id = question.id;
     this.questionText = question.questionText;
-    this.orderIndex = question.orderIndex;
   }
 }

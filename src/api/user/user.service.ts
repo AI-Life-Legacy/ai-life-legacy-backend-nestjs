@@ -78,11 +78,10 @@ export class UserService {
     return tocAndQuestions.tocMappings.map((mapping) => ({
       tocId: mapping.toc.id,
       tocTitle: mapping.toc.title,
-      orderIndex: mapping.toc.orderIndex,
+      orderIndex: mapping.orderIndex,
       questions: mapping.toc.questions.map((q) => ({
         id: q.id,
         questionText: q.questionText,
-        orderIndex: q.orderIndex,
       })),
     }));
   }

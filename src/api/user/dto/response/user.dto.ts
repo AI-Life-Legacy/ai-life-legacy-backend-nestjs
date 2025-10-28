@@ -32,9 +32,6 @@ export class QuestionDTO {
 
   @ApiProperty({ example: '언제 어디서 태어나셨나요?', description: '질문 텍스트' })
   questionText: string;
-
-  @ApiProperty({ example: 1, description: '질문의 순서' })
-  orderIndex: number;
 }
 
 export class TocWithQuestionsDTO {
@@ -43,9 +40,6 @@ export class TocWithQuestionsDTO {
 
   @ApiProperty({ example: '탄생과 유아기 시절', description: 'TOC 제목' })
   tocTitle: string;
-
-  @ApiProperty({ example: 1, description: 'TOC 순서' })
-  orderIndex: number;
 
   @ApiProperty({ type: [QuestionDTO], description: '해당 TOC의 질문 리스트' })
   questions: QuestionDTO[];
