@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, Unique } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, Unique, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity('auth_identities')
@@ -20,5 +20,6 @@ export class AuthIdentity {
   createdAt: Date;
 
   @ManyToOne(() => User, (user) => user.authIdentities, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_uuid', referencedColumnName: 'uuid' }) 
   user: User;
 }
