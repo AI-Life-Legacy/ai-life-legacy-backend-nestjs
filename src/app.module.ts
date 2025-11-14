@@ -25,7 +25,7 @@ import { TransactionModule } from './api/transaction/transaction.module';
     JwtModule,
     AuthModule,
     UserModule,
-    AiModule,
+    // AiModule, // AI 기능 일시 중단
     LifeLegacyModule,
     UserCaseModule,
     LoggerModule,
