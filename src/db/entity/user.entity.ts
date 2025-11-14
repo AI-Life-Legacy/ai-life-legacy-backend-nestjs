@@ -1,4 +1,4 @@
-import { Entity, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
 import { AuthIdentity } from './auth-identity.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { LifeLegacyAnswer } from './life-legacy-answer.entity';
@@ -26,6 +26,7 @@ export class User {
   answers: LifeLegacyAnswer[];
 
   @ManyToOne(() => UserCase, (userCase) => userCase.users)
+  @JoinColumn({ name: 'user_case_id' })
   userCase: UserCase;
 
   @OneToMany(() => UserIntro, (intro) => intro.user)
