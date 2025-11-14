@@ -4,7 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(), // 🔹 환경 변수 로드 (.env, process.env)
+    ConfigModule, // 🔹 환경 변수 로드 (.env, process.env)
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule], // ConfigModule을 가져옴
       inject: [ConfigService], // ConfigService를 주입받음

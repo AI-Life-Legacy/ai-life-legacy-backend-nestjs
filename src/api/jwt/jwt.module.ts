@@ -10,7 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 @Global()
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule,
     TypeOrmModule.forFeature([User]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     NestJsJwtModule.registerAsync({
