@@ -6,7 +6,7 @@ export class UserIntro {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'text' })
+  @Column({ name: 'intro_text', type: 'text' })
   introText: string;
 
   @CreateDateColumn()
