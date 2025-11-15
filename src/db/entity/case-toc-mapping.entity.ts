@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { UserCase } from './user-case.entity';
 import { TableOfContent } from './table-of-content.entity';
 
@@ -11,8 +11,10 @@ export class CaseTocMapping {
   orderIndex: number;
 
   @ManyToOne(() => UserCase, (userCase) => userCase.tocMappings, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_case_id', referencedColumnName: 'id' })
   userCase: UserCase;
 
   @ManyToOne(() => TableOfContent, (toc) => toc.caseMappings, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'toc_id', referencedColumnName: 'id' })
   toc: TableOfContent;
 }

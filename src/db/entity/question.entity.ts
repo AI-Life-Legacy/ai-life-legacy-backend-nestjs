@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { TableOfContent } from './table-of-content.entity';
 import { LifeLegacyAnswer } from './life-legacy-answer.entity';
 
@@ -11,6 +11,7 @@ export class Question {
   questionText: string;
 
   @ManyToOne(() => TableOfContent, (toc) => toc.questions, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'toc_id', referencedColumnName: 'id' })
   toc: TableOfContent;
 
   @OneToMany(() => LifeLegacyAnswer, (answer) => answer.question)

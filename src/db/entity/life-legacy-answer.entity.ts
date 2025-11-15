@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, Unique } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, Unique, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Question } from './question.entity';
 
@@ -18,8 +18,10 @@ export class LifeLegacyAnswer {
   updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.answers, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_uuid', referencedColumnName: 'uuid' })
   user: User;
 
   @ManyToOne(() => Question, (question) => question.answers, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'question_id', referencedColumnName: 'id' })
   question: Question;
 }
