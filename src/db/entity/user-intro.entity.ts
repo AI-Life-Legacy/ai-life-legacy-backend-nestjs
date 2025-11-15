@@ -9,7 +9,7 @@ export class UserIntro {
   @Column({ name: 'intro_text', type: 'text' })
   introText: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @ManyToOne(() => User, (user) => user.intros, { onDelete: 'CASCADE' })
