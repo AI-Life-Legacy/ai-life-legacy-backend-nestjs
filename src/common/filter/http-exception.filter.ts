@@ -22,10 +22,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message = exception.message;
     }
 
-    // WARN 로그 저장
-    this.loggerService.warn(
-      `[${request.method}] ${request.url} - Status: ${status}, Message: ${message}`
-    );
+    if (status != 404) this.loggerService.warn(`[${request.method}] ${request.url} - Status: ${status}, Message: ${message}`);
 
     response.status(status).json({
       status: status,
