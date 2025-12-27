@@ -9,7 +9,7 @@ export class LifeLegacyService {
   constructor(
     private lifeLegacyRepository: LifeLegacyRepository,
     private lifeLegacyQuestionRepository: LifeLegacyQuestionRepository,
-  ) {}
+  ) { }
 
   async getQuestions(tocId: number, uuid: string): Promise<QuestionResponseDTO[]> {
     // 1. 해당 toc의 모든 질문 가져오기
@@ -31,8 +31,7 @@ export class LifeLegacyService {
     const { answer } = savePostDto;
 
     const existResponse = await this.lifeLegacyRepository.findOneUserAnswerByUuidAndQuestionId(uuid, tocId, questionId);
-    if (existResponse) throw new ConflictException('이미 작성한 질문입니다.');
 
-    await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, answer);
+    await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, answer, existResponse?.id);
   }
 }
