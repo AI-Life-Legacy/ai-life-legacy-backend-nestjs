@@ -21,7 +21,7 @@ export class UserService {
     private userWithdrawalRepository: UserWithdrawalRepository,
     private saveUserTransactionRepository: SaveUserIntroductionRepository,
     private deleteUserTransactionRepository: DeleteUserRepository,
-  ) {}
+  ) { }
 
   async saveUserIntroduction(uuid: string, saveUserIntroDTO: SaveUserIntroDTO) {
     const { userIntroText } = saveUserIntroDTO;
@@ -101,7 +101,7 @@ export class UserService {
     const userAnswer = await this.lifeLegacyRepository.findOneUserAnswerByUuidAndQuestionId(uuid, tocId, questionId);
     if (!userAnswer) throw new NotFoundException('Not Found User Answer');
 
-    await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, updateAnswer);
+    await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, updateAnswer, userAnswer.id);
   }
 
   async deleteUser(uuid: string, withdrawalDTO: SaveUserWithdrawalDTO) {
