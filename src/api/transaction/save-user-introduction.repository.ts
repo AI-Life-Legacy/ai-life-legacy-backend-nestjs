@@ -27,11 +27,7 @@ export class SaveUserIntroductionRepository {
       });
       if (!user) throw new NotFoundException('User Not Found');
 
-      const normalizedCaseName = caseName
-        .trim()
-        .replace(/case\s*(\d+)/i, (_, num: string) => `Case ${parseInt(num, 10)}`);
-
-      const userCase = await userCaseRepo.findOne({ where: { name: normalizedCaseName } });
+      const userCase = await userCaseRepo.findOne({ where: { name: caseName } });
       if (!userCase) throw new NotFoundException('UserCase Not Found');
 
       user.userCase = userCase;
