@@ -50,11 +50,11 @@ jobs:
             git pull origin dev
             
             # 3. 의존성 설치 및 빌드
-            npm install
-            npm run build
+            sudo npm install
+            sudo npm run build
             
             # 4. PM2로 서버 재시작
-            pm2 restart life-legacy || pm2 start dist/main.js --name "life-legacy"
+            sudo pm2 restart life-legacy || sudo pm2 start dist/main.js --name "life-legacy"
 
       # 5. 배포가 성공하든 실패하든(if: always) 추가했던 IP를 다시 차단합니다.
       - name: Remove Runner IP from Security Group
