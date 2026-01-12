@@ -12,6 +12,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 1. GitHub Runner의 현재 공인 IP를 가져옵니다.
+      - name: Get Github Runner IP
+        id: ip
+        run: echo "ipv4=$(curl -s https://ifconfig.me)" >> $GITHUB_OUTPUT
+
+      # 2. AWS 자격 증명을 설정합니다. (Secrets에 KEY 등록 필요)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      # 3. 확인된 IP를 보안 그룹 22번 포트에 임시로 허용합니다.
+      - name: Add Runner IP to Security Group
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id sg-00df441b6b51f75ba \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+
+      # 4. 이제 SSH 접속이 가능해집니다.
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -30,5 +53,15 @@ jobs:
             npm install
             npm run build
             
-            # 4. PM2로 서버 재시작 (이미 켜져있으면 restart, 없으면 새로 시작)
+            # 4. PM2로 서버 재시작
             pm2 restart life-legacy || pm2 start dist/main.js --name "life-legacy"
+
+      # 5. 배포가 성공하든 실패하든(if: always) 추가했던 IP를 다시 차단합니다.
+      - name: Remove Runner IP from Security Group
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id sg-00df441b6b51f75ba \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
