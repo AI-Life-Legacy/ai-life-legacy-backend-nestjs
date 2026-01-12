@@ -1,15 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Users } from 'src/db/entity/users.entity';
+import { User } from 'src/db/entity/user.entity';
 import { Repository } from 'typeorm';
-import { CustomInternalServerException } from '../../common/exception/exception';
 import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class UserRepository {
   constructor(
-    @InjectRepository(Users)
-    private userRepository: Repository<Users>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -21,65 +20,25 @@ export class UserRepository {
       });
     } catch (err) {
       this.loggerService.warn(`User/FindUserByUUID Error : ${err}`);
-      throw new CustomInternalServerException(err);
+      throw new InternalServerErrorException(err);
     }
   }
 
-  async findUserByEmail(email: string) {
-    try {
-      return await this.userRepository.findOne({
-        where: { email },
-      });
-    } catch (err) {
-      this.loggerService.warn(`User/FindUserByEmail Error : ${err}`);
-      throw new CustomInternalServerException(err);
-    }
-  }
-
-  async createAndSaveUserByEmailAndPassword(email: string, password: string) {
-    try {
-      const user = await this.userRepository.create({
-        email,
-        password,
-      });
-      return await this.userRepository.save(user);
-    } catch (err) {
-      console.error(err);
-      throw new CustomInternalServerException();
-    }
-  }
-
-  async saveUser(user: Users) {
+  async saveUser(user: User) {
     try {
       return await this.userRepository.save(user);
     } catch (err) {
-      console.error(err);
-      throw new CustomInternalServerException();
+      this.loggerService.warn(`User/SaveUser Error : ${err}`);
+      throw new InternalServerErrorException(err);
     }
   }
 
-  async updateUserRefreshToken(uuid: string, refreshToken: string) {
-    try {
-      return await this.userRepository.update(
-        {
-          uuid,
-        },
-        {
-          refreshToken,
-        },
-      );
-    } catch (err) {
-      console.error(err);
-      throw new CustomInternalServerException();
-    }
-  }
-
-  async deleteUser(user: Users) {
+  async deleteUser(user: User) {
     try {
       return await this.userRepository.softRemove(user);
     } catch (err) {
-      console.error('Error deleting user:', err);
-      throw new CustomInternalServerException();
+      this.loggerService.warn(`User/DeleteUser Error : ${err}`);
+      throw new InternalServerErrorException(err);
     }
   }
 }

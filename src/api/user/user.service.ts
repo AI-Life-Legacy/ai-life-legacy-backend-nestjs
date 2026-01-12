@@ -1,94 +1,115 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { UserCaseRepository } from '../user-case/user-case.repository';
-import { SetUserCaseDTO, UserCaseDTO, UserContentAndQuestionsDTO, UserContentDTO, UserPostsDTO } from './dto/user.dto';
-import { ContentsRepository } from '../content/contents.repository';
-import { PostRepository } from '../post/post.repository';
-import { Posts } from '../../db/entity/posts.entity';
-import { CustomNotFoundException } from '../../common/exception/exception';
+import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
+import { UserIntroRepository } from '../user-intro/user-intro.repository';
+import { AiService } from '../ai/ai.service';
+import { UserWithdrawalRepository } from '../user-withdrawal/user-withdrawal.repository';
+import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO } from './dto/request/user.dto';
+import { SaveUserIntroductionRepository } from '../transaction/save-user-introduction.repository';
+import { TocWithQuestionsDTO, UserAnswerResponseDTO } from './dto/response/user.dto';
+import { DeleteUserRepository } from '../transaction/delete-user.repository';
 
 @Injectable()
 export class UserService {
   constructor(
     private userRepository: UserRepository,
     private userCaseRepository: UserCaseRepository,
-    private contentsRepository: ContentsRepository,
-    private postsRepository: PostRepository,
-  ) {}
+    private lifeLegacyRepository: LifeLegacyRepository,
+    private userIntroRepository: UserIntroRepository,
+    private aiService: AiService,
+    private userWithdrawalRepository: UserWithdrawalRepository,
+    private saveUserTransactionRepository: SaveUserIntroductionRepository,
+    private deleteUserTransactionRepository: DeleteUserRepository,
+  ) { }
 
-  async getUserCase(uuid: string): Promise<UserCaseDTO> {
-    const user = await this.userRepository.findUserByUUID(uuid);
-    if (!user) throw new CustomNotFoundException('Not Found User');
-    return { name: user.userCase.name };
+  async saveUserIntroduction(uuid: string, saveUserIntroDTO: SaveUserIntroDTO) {
+    const { userIntroText } = saveUserIntroDTO;
+
+    const userIntroduction = await this.userIntroRepository.findUserIntroByUuid(uuid);
+    if (userIntroduction) throw new ConflictException('Existing User Introduction');
+
+    // AI 서버한테 유저 Introduction을 기준으로 CaseName 받기
+    // const prompt = createCasePrompt(userIntroText);
+    const userCase = 'case1'; // await this.aiService.getChatGPTData(prompt, 100);
+
+    await this.saveUserTransactionRepository.saveUserIntroduction(userCase, userIntroText, uuid);
   }
 
-  async setUserCase(uuid: string, setUserCaseDTO: SetUserCaseDTO): Promise<UserCaseDTO> {
-    const { caseName } = setUserCaseDTO;
+  async getUserCase(uuid: string) {
     const user = await this.userRepository.findUserByUUID(uuid);
-    if (!user) throw new CustomNotFoundException('Not Found User');
-
-    // 케이스네임으로 UserCase에 접근해서 해당 caseName 있는지 확인
-    const userCase = await this.userCaseRepository.findCaseByCaseName(caseName);
-    if (!userCase) throw new CustomNotFoundException('Not Found Case, Check CaseName');
-
-    // 있으면 해당 caseId를 user_case(FK)에 저장
-    user.userCase = userCase;
-
-    await this.userRepository.saveUser(user);
-    return { name: userCase.name };
+    if (!user) throw new NotFoundException('Not Found User');
+    return { caseId: user.userCase.id };
   }
 
-  async getUserContents(uuid: string): Promise<UserContentDTO[]> {
-    const { name } = await this.getUserCase(uuid);
+  async getUserToc(uuid: string) {
+    const { caseId } = await this.getUserCase(uuid);
+    const result = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
+    const tocQuestions = result.tocMappings.map((mapping) => ({
+      tocId: mapping.toc.id,
+      tocTitle: mapping.toc.title,
+      questionIds: mapping.toc.questions.map((q) => q.id),
+    }));
+    // 유저가 작성한 모든 답변 가져오기
+    const answers = await this.lifeLegacyRepository.findAllUserAnswersByUuid(uuid);
 
-    const { contentMappings } = await this.userCaseRepository.findContentsByCaseName(name);
+    // QuestionId → answered 여부 매핑
+    const answeredSet = new Set(answers.map((a) => a.question.id));
 
-    const userContentList = contentMappings.map((contents) => {
+    // toc별 퍼센티지 계산
+    return tocQuestions.map((toc) => {
+      const total = toc.questionIds.length;
+      const answered = toc.questionIds.filter((id) => answeredSet.has(id)).length;
+      const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
       return {
-        id: contents.content.id,
-        content: contents.content.text,
+        tocId: toc.tocId,
+        tocTitle: toc.tocTitle,
+        totalQuestions: total,
+        answered,
+        percent,
       };
     });
-    return userContentList;
   }
 
-  async getQuestionsByContentId(contentId: number): Promise<UserContentAndQuestionsDTO> {
-    const contents = await this.contentsRepository.findQuestionsByContentsId(contentId);
-    if (!contents) throw new CustomNotFoundException('Not Found Content');
+  async getUserTocAndQuestions(uuid: string): Promise<TocWithQuestionsDTO[]> {
+    const { caseId } = await this.getUserCase(uuid);
+    const tocAndQuestions = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
 
-    const content = contents.text;
-    const questions = contents.questions.map((question) => {
-      return {
-        id: question.question.id,
-        question: question.question.text,
-      };
-    });
-
-    return {
-      id: contentId,
-      content: content,
-      questions: questions,
-    };
+    return tocAndQuestions.tocMappings.map((mapping) => ({
+      tocId: mapping.toc.id,
+      tocTitle: mapping.toc.title,
+      orderIndex: mapping.orderIndex,
+      questions: mapping.toc.questions.map((q) => ({
+        id: q.id,
+        questionText: q.questionText,
+      })),
+    }));
   }
 
-  async getAllUserPostsByUUID(uuid: string): Promise<UserPostsDTO[]> {
-    const userPosts: Posts[] = await this.postsRepository.findAllUserPostsByUUID(uuid);
-    if (userPosts.length == 0) throw new CustomNotFoundException('Not Found Posts');
+  async getUserAnswer(questionId: number, tocId: number, uuid: string) {
+    // questionId와 uuid를 기준으로 LifeLegacyAnswer 데이터를 findOne하기
+    const userAnswer = await this.lifeLegacyRepository.findOneUserAnswerByUuidAndQuestionId(uuid, tocId, questionId);
+    // 이 로직은 추후에 바뀔 수 있음 -> 유저의 작성 데이터를 언제 보여주느냐에 따라 바뀔 듯. (만약 다 작성한 다음에 접근할 수 있다면 오류를 뱉는 것이 옳음
+    if (!userAnswer) return '';
 
-    const result = userPosts.map((post) => {
-      return {
-        response: post.response,
-        content: post.content.text,
-        question: post.question.text,
-      };
-    });
-    return result;
+    return new UserAnswerResponseDTO(userAnswer);
   }
 
-  async deleteUser(uuid: string, deleteType: number) {
+  async updatePost(uuid: string, answerId: number, patchPostDto: PatchPostDTO) {
+    const { questionId, tocId, updateAnswer } = patchPostDto;
+
+    const userAnswer = await this.lifeLegacyRepository.findOneUserAnswerByUuidAndQuestionId(uuid, tocId, questionId);
+    if (!userAnswer) throw new NotFoundException('Not Found User Answer');
+
+    await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, updateAnswer, userAnswer.id);
+  }
+
+  async deleteUser(uuid: string, withdrawalDTO: SaveUserWithdrawalDTO) {
+    const { withdrawalReason, withdrawalText } = withdrawalDTO;
+
     const user = await this.userRepository.findUserByUUID(uuid);
-    if (!user) throw new CustomNotFoundException('Not Found User');
-    user.deleteType = deleteType;
-    await this.userRepository.deleteUser(user);
+    if (!user) throw new NotFoundException('Not Found User');
+
+    await this.deleteUserTransactionRepository.deleteUser(uuid, withdrawalReason, withdrawalText);
   }
 }

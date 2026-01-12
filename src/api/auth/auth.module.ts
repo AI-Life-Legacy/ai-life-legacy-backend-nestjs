@@ -2,12 +2,14 @@ import { Module, forwardRef } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserModule } from '../user/user.module';
-import { JwtService } from '@nestjs/jwt';
+import { RefreshTokenModule } from '../refresh-token/refresh-token.module';
+import { AuthIdentityModule } from '../auth-identity/auth-identity.module';
+import { TransactionModule } from '../transaction/transaction.module';
 
 @Module({
-  imports: [forwardRef(() => UserModule)],
+  imports: [forwardRef(() => UserModule), RefreshTokenModule, AuthIdentityModule, TransactionModule],
   controllers: [AuthController],
-  providers: [AuthService, JwtService],
+  providers: [AuthService],
   exports: [AuthService],
 })
 export class AuthModule {}

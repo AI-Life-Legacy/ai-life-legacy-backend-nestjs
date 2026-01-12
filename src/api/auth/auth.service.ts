@@ -1,97 +1,121 @@
-import { Injectable } from '@nestjs/common';
-import { AuthCredentialsDto, JwtTokenResponseDto, RefreshTokenDto } from './dto/auth.dto';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { UserRepository } from '../user/user.repository';
-import { CustomConflictException, CustomNotFoundException, CustomUnauthorizedException } from '../../common/exception/exception';
 import { ConfigService } from '@nestjs/config';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
+import { RefreshTokenRepository } from '../refresh-token/refresh-token.repository';
+import * as ms from 'ms';
+import { AuthIdentityRepository } from '../auth-identity/auth-identity.repository';
+import { Provider } from '../../common/enum/auth-identity.enum';
+import { CreateUserRepository } from '../transaction/create-user.repository';
+import { LoggerService } from '../logger/logger.service';
+import { LoginDTO, RefreshTokenDto, SignupDTO } from './dto/request/auth.dto';
+import { JwtTokenResponseDTO } from './dto/response/auth.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userRepository: UserRepository,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private redisCacheService: RedisCacheService,
+    private refreshTokenRepository: RefreshTokenRepository,
+    private authIdentityRepository: AuthIdentityRepository,
+    private readonly loggerService: LoggerService,
+    private transactionRepository: CreateUserRepository,
   ) {}
 
-  async signup(authCredentialsDto: AuthCredentialsDto): Promise<JwtTokenResponseDto> {
-    const { email, password } = authCredentialsDto;
+  private hashToken(token: string): string {
+    return bcrypt.hashSync(token, 10);
+  }
 
-    const existUser = await this.userRepository.findUserByEmail(email);
-    if (existUser) throw new CustomConflictException('Exist Email');
+  private async compareToken(token: string, hashToken: string): Promise<boolean> {
+    return bcrypt.compare(token, hashToken);
+  }
 
-    const hashPassword = await bcrypt.hash(password, 10);
-    const newUser = await this.userRepository.createAndSaveUserByEmailAndPassword(email, hashPassword);
+  private generateAccessToken(payload: any): string {
+    try {
+      return this.jwtService.sign(payload);
+    } catch (err) {
+      this.loggerService.warn(`Auth/GenerateAccessToken Error: ${err.message}`);
+      throw new InternalServerErrorException('Failed to generate access token');
+    }
+  }
 
-    const payload = { uuid: newUser.uuid };
-    const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'), // 🔹 환경 변수에서 JWT 시크릿 가져오기
-      expiresIn: this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN'),
-    });
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
-      expiresIn: this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN'),
-    });
+  private generateRefreshToken(payload: any): { refreshToken: string; expiresAt: Date } {
+    try {
+      const expiresIn = this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN');
+      const refreshToken = this.jwtService.sign(payload, {
+        secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
+        expiresIn,
+      });
+      const expiresAt = new Date(Date.now() + ms(expiresIn));
+      return { refreshToken, expiresAt };
+    } catch (err) {
+      this.loggerService.warn(`Auth/GenerateRefreshToken Error: ${err.message}`);
+      throw new InternalServerErrorException('Failed to generate refresh token');
+    }
+  }
 
-    await this.redisCacheService.set(refreshToken + newUser.uuid, refreshToken);
+  async signup(signupDTO: SignupDTO): Promise<JwtTokenResponseDTO> {
+    const { email, password } = signupDTO;
+
+    const existingUser = await this.authIdentityRepository.findAuthIdentityByProviderUuid(email);
+    if (existingUser) throw new ConflictException('Email already exists');
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUserUuid = await this.transactionRepository.createUser(email, hashedPassword, Provider.local);
+
+    const payload = { uuid: newUserUuid };
+    const accessToken = this.generateAccessToken(payload);
+    const { refreshToken, expiresAt } = this.generateRefreshToken(payload);
+
+    await this.refreshTokenRepository.saveRefreshToken(newUserUuid, this.hashToken(refreshToken), expiresAt);
+
     return { accessToken, refreshToken };
   }
 
-  async signIn(authCredentialsDto: AuthCredentialsDto): Promise<JwtTokenResponseDto> {
-    const { email, password } = authCredentialsDto;
+  async login(loginDTO: LoginDTO): Promise<JwtTokenResponseDTO> {
+    const { email, password } = loginDTO;
 
-    const user = await this.userRepository.findUserByEmail(email);
-    if (!user) throw new CustomNotFoundException('User not found');
+    const userAuthIdentity = await this.authIdentityRepository.findAuthIdentityByProviderUuid(email);
+    if (!userAuthIdentity) throw new NotFoundException('User not found');
 
-    const checkPassword = await bcrypt.compare(password, user.password);
-    if (!checkPassword) throw new CustomUnauthorizedException('Invalid credentials');
+    const isPasswordValid = await bcrypt.compare(password, userAuthIdentity.passwordHash);
+    if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
 
-    const payload = { uuid: user.uuid };
-    const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'),
-      expiresIn: this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN'),
-    });
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
-      expiresIn: this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN'),
-    });
+    const payload = { uuid: userAuthIdentity.user.uuid };
+    const accessToken = this.generateAccessToken(payload);
+    const { refreshToken, expiresAt } = this.generateRefreshToken(payload);
 
-    await this.redisCacheService.set(refreshToken + user.uuid, refreshToken);
+    // 항상 새로 발급 → DB에 업데이트
+    await this.refreshTokenRepository.updateRefreshToken(userAuthIdentity.user.uuid, this.hashToken(refreshToken), expiresAt);
+
     return { accessToken, refreshToken };
   }
 
-  async refresh(refreshTokenDto: RefreshTokenDto): Promise<JwtTokenResponseDto> {
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
     const { refreshToken } = refreshTokenDto;
 
-    // 1. 해당 리프레시 토큰이 유효한지 validate 하기
-    const payload = this.jwtService.verify(refreshToken, {
-      secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
-    });
-
-    // 2. 만약 유효하다면, 사용자 데이터베이스에 존재하는 refreshToken과 비교하기
-    const cachedRefresh = await this.redisCacheService.get(refreshToken + payload.uuid);
-    if (!cachedRefresh) throw new CustomUnauthorizedException('Refresh token expired');
-    if (cachedRefresh !== refreshToken) throw new CustomUnauthorizedException('Refresh token expired');
-
-    const newAccessToken = this.jwtService.sign(
-      { uuid: payload.uuid },
-      {
-        secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'),
-        expiresIn: this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN'),
-      },
-    );
-    const newRefreshToken = this.jwtService.sign(
-      { uuid: payload.uuid },
-      {
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
-        expiresIn: this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN'),
-      },
-    );
+      });
+    } catch (err) {
+      this.loggerService.warn(`Auth/RefreshToken Error : ${err}`);
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
 
-    await this.redisCacheService.set(newRefreshToken + payload.uuid, newRefreshToken);
-    await this.redisCacheService.delete(refreshToken + payload.uuid);
+    const tokenRecord = await this.refreshTokenRepository.getValidRefreshTokenByUUID(payload.uuid);
+    if (!tokenRecord) throw new UnauthorizedException('Refresh token not found or expired');
+
+    const isMatch = await this.compareToken(refreshToken, tokenRecord.tokenHash);
+    if (!isMatch) throw new UnauthorizedException('Invalid refresh token');
+
+    const newAccessToken = this.generateAccessToken({ uuid: payload.uuid });
+    const { refreshToken: newRefreshToken, expiresAt } = this.generateRefreshToken({ uuid: payload.uuid });
+
+    await this.refreshTokenRepository.updateRefreshToken(payload.uuid, this.hashToken(newRefreshToken), expiresAt);
+
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 }
