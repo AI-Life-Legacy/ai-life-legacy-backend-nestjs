@@ -62,8 +62,17 @@ export class CombineDTO {
   data2: string;
 }
 
+export class ChatDTO {
+  @ApiProperty({
+    description: '채팅 메시지',
+    example: '안녕하세요',
+  })
+  @IsString()
+  message: string;
+}
+
 export class AIResponseDTO {
   @ApiProperty({ description: 'AIResponse', example: 'AIResponse' })
   @IsString()
-  content: string;
+  message: string;
 }

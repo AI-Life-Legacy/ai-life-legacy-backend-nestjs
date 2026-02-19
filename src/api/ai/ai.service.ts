@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import OpenAI from 'openai';
 import { ConfigService } from '@nestjs/config';
-import { AIResponseDTO, MakeReQuestionDTO } from './dto/ai.dto';
+import { AIResponseDTO, ChatDTO, MakeReQuestionDTO } from './dto/ai.dto';
 import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
@@ -28,7 +28,41 @@ export class AiService {
     });
   }
 
-  async getChatGPTData(prompt: string, token: number): Promise<AIResponseDTO> {
+  async chat(chatDTO: ChatDTO): Promise<AIResponseDTO> {
+    const { message } = chatDTO;
+    let response;
+    try {
+      response = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uuid: 'temp-user-id',
+          role: '아버지',
+          question: message,
+        }),
+      });
+    } catch (err) {
+      console.log(err);
+    }
+    if (!response.ok) {
+      throw new Error(`AI Server Error: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    const responseMessage = result.message;
+    if (!responseMessage) {
+      throw new Error('Invalid AI response: message not found');
+    }
+
+    return {
+      message: responseMessage,
+    };
+  }
+
+  async getChatGPTData(prompt: string, token: number) {
     // 키 없을 때, 서버 런타임 에러 없게
     if (!this.openai) {
       this.loggerService.warn('getChatGPTData called but AiService is disabled (no OPENAI_API_KEY).');
