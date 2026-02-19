@@ -3,8 +3,6 @@ import { UserRepository } from './user.repository';
 import { UserCaseRepository } from '../user-case/user-case.repository';
 import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
 import { UserIntroRepository } from '../user-intro/user-intro.repository';
-import { AiService } from '../ai/ai.service';
-import { UserWithdrawalRepository } from '../user-withdrawal/user-withdrawal.repository';
 import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO } from './dto/request/user.dto';
 import { SaveUserIntroductionRepository } from '../transaction/save-user-introduction.repository';
 import { TocWithQuestionsDTO, UserAnswerResponseDTO } from './dto/response/user.dto';
@@ -17,11 +15,9 @@ export class UserService {
     private userCaseRepository: UserCaseRepository,
     private lifeLegacyRepository: LifeLegacyRepository,
     private userIntroRepository: UserIntroRepository,
-    private aiService: AiService,
-    private userWithdrawalRepository: UserWithdrawalRepository,
     private saveUserTransactionRepository: SaveUserIntroductionRepository,
     private deleteUserTransactionRepository: DeleteUserRepository,
-  ) { }
+  ) {}
 
   async saveUserIntroduction(uuid: string, saveUserIntroDTO: SaveUserIntroDTO) {
     const { userIntroText } = saveUserIntroDTO;
@@ -29,9 +25,28 @@ export class UserService {
     const userIntroduction = await this.userIntroRepository.findUserIntroByUuid(uuid);
     if (userIntroduction) throw new ConflictException('Existing User Introduction');
 
-    // AI 서버한테 유저 Introduction을 기준으로 CaseName 받기
-    // const prompt = createCasePrompt(userIntroText);
-    const userCase = 'case1'; // await this.aiService.getChatGPTData(prompt, 100);
+    const requestBody = {
+      introText: userIntroText,
+    };
+
+    const response = await fetch('http://localhost:8000/api/case', {
+      method: 'POST', // HTTP 메서드
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI Server Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    const userCase = data.case;
+    if (!userCase) {
+      throw new ConflictException('AI Server Error: No Case');
+    }
 
     await this.saveUserTransactionRepository.saveUserIntroduction(userCase, userIntroText, uuid);
   }

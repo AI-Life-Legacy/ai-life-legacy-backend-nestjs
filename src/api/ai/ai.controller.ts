@@ -1,6 +1,5 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AiService } from './ai.service';
-import { createReQuestionPrompt } from 'src/common/prompt/makeReQuestion.prompt';
 import { combinePrompt } from 'src/common/prompt/combine.prompt';
 import { AIResponseDTO, CombineDTO, MakeReQuestionDTO } from './dto/ai.dto';
 import { SuccessResponseDTO } from 'src/common/response/response.dto';
@@ -17,12 +16,8 @@ export class AiController {
   @Post('/question')
   @ApiOperation({ summary: '2차 질문 생성 AI API' })
   @ApiSuccessResponse(AIResponseDTO)
-  async makeReQuestion(@Body() makeReQuestionDTO: MakeReQuestionDTO): Promise<SuccessResponseDTO<AIResponseDTO>> {
-    const CHATGPTTOKEN = 1000;
-    const { question, data } = makeReQuestionDTO;
-    const prompt = createReQuestionPrompt(question, data);
-
-    return new SuccessResponseDTO(await this.chatGptService.getChatGPTData(prompt, CHATGPTTOKEN));
+  async makeReQuestion(@Body() makeReQuestionDTO: MakeReQuestionDTO) {
+    return new SuccessResponseDTO(await this.chatGptService.fuckingTempFunction(makeReQuestionDTO));
   }
 
   @Post('/combine')
