@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class MakeCaseDTO {
@@ -69,6 +69,14 @@ export class ChatDTO {
   })
   @IsString()
   message: string;
+  @ApiProperty({
+    description: '채팅 역할 (선택). 생략 시 기본값 "아버지"로 동작합니다.',
+    example: '아버지',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  role?: string;
 }
 
 export class AIResponseDTO {

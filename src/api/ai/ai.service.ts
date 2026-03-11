@@ -29,7 +29,7 @@ export class AiService {
   }
 
   async chat(chatDTO: ChatDTO): Promise<AIResponseDTO> {
-    const { message } = chatDTO;
+    const { message, role } = chatDTO;
     let response;
     try {
       response = await fetch('http://localhost:8000/api/chat', {
@@ -38,9 +38,9 @@ export class AiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          uuid: 'temp-user-id',
-          role: '아버지',
-          question: message,
+          userId: 'temp-user-id',
+          message: message,
+          role: role || '아버지', // default fallback
         }),
       });
     } catch (err) {
@@ -52,9 +52,9 @@ export class AiService {
 
     const result = await response.json();
 
-    const responseMessage = result.message;
+    const responseMessage = result.response;
     if (!responseMessage) {
-      throw new Error('Invalid AI response: message not found');
+      throw new Error('Invalid AI response: response not found');
     }
 
     return {
