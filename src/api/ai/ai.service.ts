@@ -32,7 +32,7 @@ export class AiService {
     const { message } = chatDTO;
     let response;
     try {
-      response = await fetch('http://localhost:8000/chat', {
+      response = await fetch('http://localhost:8000/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
