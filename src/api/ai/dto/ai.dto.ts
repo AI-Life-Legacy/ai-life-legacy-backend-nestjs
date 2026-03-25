@@ -13,6 +13,15 @@ export class MakeCaseDTO {
   data: string;
 }
 
+export class SyncDTO {
+  @ApiProperty({
+    description: '유저의 답변, 일기, 또는 외부 연동 텍스트',
+    example: '오늘 나는 아내와 함께 속초 바다를 보러 갔다. 아주 즐거운 하루였다.',
+  })
+  @IsString()
+  content: string;
+}
+
 export class MakeReQuestionDTO {
   @ApiProperty({
     description: '1차 질문',
@@ -83,4 +92,37 @@ export class AIResponseDTO {
   @ApiProperty({ description: 'AIResponse', example: 'AIResponse' })
   @IsString()
   message: string;
+}
+
+export class CaseResponseDTO {
+  @ApiProperty({ description: '분류된 케이스 (case1 ~ case6)', example: 'case1' })
+  @IsString()
+  case: string;
+}
+
+export class SearchDTO {
+  @ApiProperty({ description: '검색어', example: '바다' })
+  @IsString()
+  query: string;
+}
+
+export class SearchResultDTO {
+  @ApiProperty({ description: '검색된 원문', example: '오늘 바다에 다녀왔다.' })
+  @IsString()
+  content: string;
+}
+
+export class SearchResponseDTO {
+  @ApiProperty({ description: '검색 결과 배열', type: [SearchResultDTO] })
+  results: SearchResultDTO[];
+}
+
+export class AutobiographyResponseDTO {
+  @ApiProperty({ description: '생성된 마크다운 파일 내용 또는 경로', example: '# 나의 자서전...' })
+  @IsString()
+  markdown: string;
+
+  @ApiProperty({ description: '생성된 PDF 파일 경로', example: '/pdfs/user_abc123.pdf' })
+  @IsString()
+  pdfPath: string;
 }
