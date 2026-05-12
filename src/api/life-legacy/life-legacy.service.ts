@@ -1,8 +1,8 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { LifeLegacyRepository } from './life-legacy.repository';
 import { LifeLegacyQuestionRepository } from '../life-legacy-question/life-legacy-question.repository';
-import { SavePostDTO } from './dto/request/life-legacy.dto';
-import { QuestionResponseDTO } from './dto/response/life-legacy.dto';
+import { SavePostDTO, ShareRequestDTO } from './dto/request/life-legacy.dto';
+import { PdfResponseDTO, QuestionResponseDTO, ShareResponseDTO } from './dto/response/life-legacy.dto';
 
 @Injectable()
 export class LifeLegacyService {
@@ -33,5 +33,21 @@ export class LifeLegacyService {
     const existResponse = await this.lifeLegacyRepository.findOneUserAnswerByUuidAndQuestionId(uuid, tocId, questionId);
 
     await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, answer, existResponse?.id);
+  }
+
+  async shareAutobiography(userId: string, tocId: number): Promise<ShareResponseDTO> {
+    const viewerCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // TODO: DB 저장 로직 추가
+    return { viewerCode, expiresAt: expiresAt.toISOString() };
+  }
+
+  async getPdfUrl(userId: string, tocId: number): Promise<PdfResponseDTO> {
+    const pdfUrl = `https://s3.example.com/pdfs/${userId}_${tocId}.pdf`;
+    const createdAt = new Date().toISOString();
+
+    return { pdfUrl, createdAt };
   }
 }

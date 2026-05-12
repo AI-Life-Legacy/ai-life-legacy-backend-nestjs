@@ -4,8 +4,8 @@ import { SuccessNoResultResponseDTO, SuccessResponseDTO } from 'src/common/respo
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { ApiBearerAuth, ApiExtraModels, ApiOkResponse, ApiOperation, getSchemaPath } from '@nestjs/swagger';
 import { GetUUID } from '../../common/deco/get-user.decorator';
-import { SavePostDTO } from './dto/request/life-legacy.dto';
-import { QuestionResponseDTO } from './dto/response/life-legacy.dto';
+import { SavePostDTO, ShareRequestDTO } from './dto/request/life-legacy.dto';
+import { PdfResponseDTO, QuestionResponseDTO, ShareResponseDTO } from './dto/response/life-legacy.dto';
 
 @Controller('life-legacy')
 @ApiBearerAuth()
@@ -47,5 +47,19 @@ export class LifeLegacyController {
   ) {
     await this.lifeLegacyService.saveUserTocQuestionAnswer(uuid, tocId, questionId, savePostDTO);
     return new SuccessNoResultResponseDTO();
+  }
+
+  @Post('/share')
+  @ApiOperation({ summary: '자서전 공유용 뷰어 코드 발급 API' })
+  @ApiOkResponse({ description: '코드 발급 성공', type: ShareResponseDTO })
+  async shareAutobiography(@Body() shareRequestDTO: ShareRequestDTO, @GetUUID() uuid: string) {
+    return new SuccessResponseDTO(await this.lifeLegacyService.shareAutobiography(uuid, shareRequestDTO.tocId));
+  }
+
+  @Get('/pdf/:tocId')
+  @ApiOperation({ summary: '최종 완성된 PDF URL 조회 API' })
+  @ApiOkResponse({ description: 'URL 조회 성공', type: PdfResponseDTO })
+  async getPdfUrl(@Param('tocId', ParseIntPipe) tocId: number, @GetUUID() uuid: string) {
+    return new SuccessResponseDTO(await this.lifeLegacyService.getPdfUrl(uuid, tocId));
   }
 }
