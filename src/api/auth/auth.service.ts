@@ -8,8 +8,8 @@ import { AuthIdentityRepository } from '../auth-identity/auth-identity.repositor
 import { Provider } from '../../common/enum/auth-identity.enum';
 import { CreateUserRepository } from '../transaction/create-user.repository';
 import { LoggerService } from '../logger/logger.service';
-import { LoginDTO, RefreshTokenDto, SignupDTO } from './dto/request/auth.dto';
-import { JwtTokenResponseDTO } from './dto/response/auth.dto';
+import { LoginDTO, RefreshTokenDto, SignupDTO, ViewerLoginRequestDTO } from './dto/request/auth.dto';
+import { JwtTokenResponseDTO, ViewerLoginResponseDTO } from './dto/response/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -117,5 +117,20 @@ export class AuthService {
     await this.refreshTokenRepository.updateRefreshToken(payload.uuid, this.hashToken(newRefreshToken), expiresAt);
 
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+  }
+
+  async viewerLogin(viewerLoginRequestDTO: ViewerLoginRequestDTO): Promise<ViewerLoginResponseDTO> {
+    const { viewerCode } = viewerLoginRequestDTO;
+
+    // TODO: DB에서 viewerCode 조회 및 검증 로직 구현
+    // 현재는 하드코딩된 값으로 동작 확인용
+    if (viewerCode !== 'A3F7K2') {
+      // throw new UnauthorizedException('Invalid viewer code');
+    }
+
+    const accessToken = this.generateAccessToken({ role: 'viewer', code: viewerCode });
+    const authorInfo = { name: '홍길동', intro: '나의 삶의 기록' };
+
+    return { accessToken, authorInfo };
   }
 }
