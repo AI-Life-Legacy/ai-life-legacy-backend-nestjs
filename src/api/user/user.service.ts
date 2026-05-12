@@ -3,7 +3,7 @@ import { UserRepository } from './user.repository';
 import { UserCaseRepository } from '../user-case/user-case.repository';
 import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
 import { UserIntroRepository } from '../user-intro/user-intro.repository';
-import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO } from './dto/request/user.dto';
+import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO, UpdateNotificationSettingsDTO } from './dto/request/user.dto';
 import { SaveUserIntroductionRepository } from '../transaction/save-user-introduction.repository';
 import { TocWithQuestionsDTO, UserAnswerResponseDTO } from './dto/response/user.dto';
 import { DeleteUserRepository } from '../transaction/delete-user.repository';
@@ -25,69 +25,72 @@ export class UserService {
     const userIntroduction = await this.userIntroRepository.findUserIntroByUuid(uuid);
     if (userIntroduction) throw new ConflictException('Existing User Introduction');
 
-    const requestBody = {
-      introText: userIntroText,
-    };
+    // DB에 자기소개 텍스트만 저장 (AI 서버 호출하지 않음)
+    await this.userIntroRepository.saveUserIntro(uuid, userIntroText);
 
-    const response = await fetch('http://localhost:8000/api/case', {
-      method: 'POST', // HTTP 메서드
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      throw new Error(`AI Server Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    const userCase = data.case;
-    if (!userCase) {
-      throw new ConflictException('AI Server Error: No Case');
-    }
-
-    await this.saveUserTransactionRepository.saveUserIntroduction(userCase, userIntroText, uuid);
+    return { userIntroText };
   }
 
   async getUserCase(uuid: string) {
     const user = await this.userRepository.findUserByUUID(uuid);
     if (!user) throw new NotFoundException('Not Found User');
-    return { caseId: user.userCase.id };
+    return { caseId: user.userCase?.id || null };
   }
 
   async getUserToc(uuid: string) {
     const { caseId } = await this.getUserCase(uuid);
+    if (!caseId) {
+      return {
+        totalChapters: 0,
+        completedChapters: 0,
+        progressPercent: 0,
+        chapters: [],
+      };
+    }
+
     const result = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
     const tocQuestions = result.tocMappings.map((mapping) => ({
       tocId: mapping.toc.id,
       tocTitle: mapping.toc.title,
       questionIds: mapping.toc.questions.map((q) => q.id),
     }));
+
     // 유저가 작성한 모든 답변 가져오기
     const answers = await this.lifeLegacyRepository.findAllUserAnswersByUuid(uuid);
 
     // QuestionId → answered 여부 매핑
     const answeredSet = new Set(answers.map((a) => a.question.id));
 
-    // toc별 퍼센티지 계산
-    return tocQuestions.map((toc) => {
+    const chapters = tocQuestions.map((toc) => {
       const total = toc.questionIds.length;
       const answered = toc.questionIds.filter((id) => answeredSet.has(id)).length;
       const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
       return {
         tocId: toc.tocId,
-        tocTitle: toc.tocTitle,
-        totalQuestions: total,
-        answered,
+        title: toc.tocTitle,
+        done: answered,
+        total: total,
+        status: answered === 0 ? 'not-started' : answered === total ? 'completed' : 'in-progress',
         percent,
       };
     });
+
+    const totalChapters = chapters.length;
+    const completedChapters = chapters.filter((c) => c.status === 'completed').length;
+    const progressPercent = totalChapters > 0 ? Math.round((completedChapters / totalChapters) * 100) : 0;
+
+    return {
+      totalChapters,
+      completedChapters,
+      progressPercent,
+      chapters,
+    };
   }
 
   async getUserTocAndQuestions(uuid: string): Promise<TocWithQuestionsDTO[]> {
     const { caseId } = await this.getUserCase(uuid);
+    if (!caseId) return [];
+
     const tocAndQuestions = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
 
     return tocAndQuestions.tocMappings.map((mapping) => ({
@@ -126,5 +129,15 @@ export class UserService {
     if (!user) throw new NotFoundException('Not Found User');
 
     await this.deleteUserTransactionRepository.deleteUser(uuid, withdrawalReason, withdrawalText);
+  }
+
+  async updateProfileImage(userId: string, file: any): Promise<void> {
+    // TODO: S3 업로드 로직 등 구현
+    console.log(`Uploading profile image for user ${userId}`);
+  }
+
+  async updateNotificationSettings(userId: string, settings: UpdateNotificationSettingsDTO): Promise<void> {
+    // TODO: DB 저장 로직 구현
+    console.log(`Updating notification settings for user ${userId}:`, settings);
   }
 }

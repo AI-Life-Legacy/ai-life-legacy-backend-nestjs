@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { WithdrawalReasonCode } from '../../../../common/enum/user-withdrawal.enum';
 
@@ -52,4 +52,14 @@ export class PatchPostDTO {
   @IsNotEmpty()
   @IsNumber()
   questionId: number;
+}
+
+export class UpdateNotificationSettingsDTO {
+  @ApiProperty({ description: '푸시 알림 여부', example: true })
+  @IsBoolean()
+  reminderEnabled: boolean;
+
+  @ApiProperty({ description: '알림 시간', example: '09:00' })
+  @IsString()
+  reminderTime: string;
 }
