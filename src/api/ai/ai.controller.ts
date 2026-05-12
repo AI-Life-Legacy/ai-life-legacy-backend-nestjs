@@ -1,7 +1,7 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { combinePrompt } from 'src/common/prompt/combine.prompt';
-import { AIResponseDTO, ChatDTO, CombineDTO, MakeReQuestionDTO, MakeCaseDTO, SyncDTO, SearchDTO, SearchResponseDTO, AutobiographyResponseDTO, CaseResponseDTO } from './dto/ai.dto';
+import { AIResponseDTO, ChatDTO, CombineDTO, MakeReQuestionDTO, MakeCaseDTO, SyncDTO, SearchDTO, SearchResponseDTO, AutobiographyResponseDTO, CaseResponseDTO, AutobiographyStatusResponseDTO } from './dto/ai.dto';
 import { SuccessNoResultResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
@@ -41,6 +41,13 @@ export class AiController {
   @ApiSuccessResponse(AutobiographyResponseDTO)
   async generateAutobiography(@GetUUID() uuid: string) {
     return new SuccessResponseDTO(await this.aiService.generateAutobiography(uuid));
+  }
+
+  @Get('/autobiography/status/:tocId')
+  @ApiOperation({ summary: '자서전 생성 진행 상태 조회 API' })
+  @ApiSuccessResponse(AutobiographyStatusResponseDTO)
+  async getAutobiographyStatus(@Param('tocId', ParseIntPipe) tocId: number, @GetUUID() uuid: string) {
+    return new SuccessResponseDTO(await this.aiService.getAutobiographyStatus(tocId, uuid));
   }
 
   @Post('/chat')

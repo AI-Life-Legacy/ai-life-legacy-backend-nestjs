@@ -1,8 +1,9 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import OpenAI from 'openai';
 import { ConfigService } from '@nestjs/config';
-import { AIResponseDTO, ChatDTO, MakeReQuestionDTO, MakeCaseDTO, CaseResponseDTO, SyncDTO, SearchDTO, SearchResponseDTO, AutobiographyResponseDTO } from './dto/ai.dto';
+import { AIResponseDTO, ChatDTO, MakeReQuestionDTO, MakeCaseDTO, CaseResponseDTO, SyncDTO, SearchDTO, SearchResponseDTO, AutobiographyResponseDTO, AutobiographyStatusResponseDTO } from './dto/ai.dto';
 import { LoggerService } from '../logger/logger.service';
+import { SaveUserIntroductionRepository } from '../transaction/save-user-introduction.repository';
 
 @Injectable()
 export class AiService {
@@ -12,6 +13,7 @@ export class AiService {
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
+    private readonly saveUserTransactionRepository: SaveUserIntroductionRepository,
   ) {
     this.apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.organization = this.configService.get<string>('OPENAI_ORGANIZATION');
@@ -29,50 +31,70 @@ export class AiService {
   }
 
   async caseClassification(makeCaseDTO: MakeCaseDTO, userId: string): Promise<CaseResponseDTO> {
-    const response = await fetch('http://localhost:8000/api/case', {
+    const response = await fetch('http://localhost:8000/api/v1/case', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId,
-        introText: makeCaseDTO.data, // 'data'를 'introText'로 변경
+        introText: makeCaseDTO.data,
       }),
     });
     if (!response.ok) throw new Error(`AI Server Error: ${response.status}`);
     const result = await response.json();
-    return { case: result.case || 'case1' };
+    const userCase = result.case || 'case1';
+
+    // AI 결과를 바탕으로 유저 목차 생성 및 저장
+    await this.saveUserTransactionRepository.saveUserIntroduction(userCase, makeCaseDTO.data, userId);
+
+    return { case: userCase };
   }
 
   async memorySync(syncDTO: SyncDTO, userId: string): Promise<void> {
-    const response = await fetch('http://localhost:8000/api/sync', {
+    const response = await fetch('http://localhost:8000/api/v1/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         userId,
-        text: syncDTO.content, // 'content'를 'text'로 변경
-        metadata: {}, // 필수 metadata 추가
+        text: syncDTO.content,
+        metadata: {},
       }),
     });
     if (!response.ok) throw new Error(`AI Server Error: ${response.status}`);
   }
 
   async generateQuestion(makeReQuestionDTO: MakeReQuestionDTO, userId: string): Promise<AIResponseDTO> {
-    const { question, data } = makeReQuestionDTO;
+    const { question, data, tocId } = makeReQuestionDTO;
 
-    const requestBody = {
-      userId,
-      originalQuestion: question,
-      userAnswer: data,
+    console.log('[API/question frontend body]', makeReQuestionDTO);
+
+    const aiPayload = {
+      toc_id: tocId || 1,
+      current_answer: data,
+      chat_history: [
+        {
+          role: 'ai',
+          content: question,
+        },
+        {
+          role: 'user',
+          content: data,
+        },
+      ],
     };
 
-    const response = await fetch('http://localhost:8000/api/question', {
+    console.log('[AI/question payload]', aiPayload);
+
+    const response = await fetch('http://localhost:8000/api/v1/generation/question', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(aiPayload),
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.log('[AI/question error status]', response.status);
+      console.log('[AI/question error data]', errorData);
       throw new Error(`AI Server Error: ${response.status}`);
     }
 
@@ -84,15 +106,15 @@ export class AiService {
     }
 
     return {
-      message: newQuestion,
+      question: newQuestion,
     };
   }
 
   async generateAutobiography(userId: string): Promise<AutobiographyResponseDTO> {
-    const response = await fetch('http://localhost:8000/api/autobiography', {
+    const response = await fetch('http://localhost:8000/api/v1/generation/autobiography', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, userName: '사용자' }), // userName 추가
+      body: JSON.stringify({ userId, userName: '사용자' }),
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -107,11 +129,22 @@ export class AiService {
     };
   }
 
+  async getAutobiographyStatus(tocId: number, userId: string): Promise<AutobiographyStatusResponseDTO> {
+    const response = await fetch(`http://localhost:8000/api/v1/generation/autobiography/status/${userId}/${tocId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`AI Server Error: ${response.status}`);
+    }
+    return await response.json();
+  }
+
   async chat(chatDTO: ChatDTO, userId: string): Promise<AIResponseDTO> {
     const { message, role } = chatDTO;
     let response;
     try {
-      response = await fetch('http://localhost:8000/api/chat', {
+      response = await fetch('http://localhost:8000/api/v1/chat/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +152,9 @@ export class AiService {
         body: JSON.stringify({
           userId,
           message: message,
-          role: role || '아버지', // default fallback
+          role: chatDTO.role || '아버지',
+          role_id: chatDTO.role_id,
+          session_id: chatDTO.session_id,
         }),
       });
     } catch (err) {
@@ -143,7 +178,7 @@ export class AiService {
   }
 
   async search(searchDTO: SearchDTO, userId: string): Promise<SearchResponseDTO> {
-    const response = await fetch('http://localhost:8000/api/search', {
+    const response = await fetch('http://localhost:8000/api/v1/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

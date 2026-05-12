@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class MakeCaseDTO {
@@ -23,6 +23,15 @@ export class SyncDTO {
 }
 
 export class MakeReQuestionDTO {
+  @ApiProperty({
+    description: '목차 ID (선택)',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  tocId?: number;
+
   @ApiProperty({
     description: '1차 질문',
     example: '언제 어디서 태어나셨나요? 탄생에 얽힌 이야기가 있나요? 부모님이나 가족들이 당신의 유아기에 대해 어떤 이야기를 해주셨나요?',
@@ -86,12 +95,49 @@ export class ChatDTO {
   @IsString()
   @IsOptional()
   role?: string;
+
+  @ApiProperty({
+    description: '역할 ID (선택)',
+    example: 'father',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  role_id?: string;
+
+  @ApiProperty({
+    description: '세션 ID (선택)',
+    example: 'session_123',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  session_id?: string;
+}
+
+export class AutobiographyStatusResponseDTO {
+  @ApiProperty({ description: '진행 상태', example: 'PROCESSING' })
+  @IsString()
+  status: string;
+
+  @ApiProperty({ description: '진행률', example: 50 })
+  progress: number;
+
+  @ApiProperty({ description: '메시지', example: 'PDF 생성 중입니다.' })
+  @IsString()
+  message: string;
 }
 
 export class AIResponseDTO {
-  @ApiProperty({ description: 'AIResponse', example: 'AIResponse' })
+  @ApiProperty({ description: 'AI 메시지', example: '안녕하세요' })
   @IsString()
-  message: string;
+  @IsOptional()
+  message?: string;
+
+  @ApiProperty({ description: '생성된 질문', example: '꼬리 질문입니다.', required: false })
+  @IsString()
+  @IsOptional()
+  question?: string;
 }
 
 export class CaseResponseDTO {
