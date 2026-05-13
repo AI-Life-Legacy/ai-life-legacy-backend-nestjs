@@ -22,12 +22,12 @@ export class DeleteUserRepository {
       const withdrawalRepo = queryRunner.manager.getRepository(UserWithdrawal);
 
       await withdrawalRepo.save({
-        user: { uuid },
+        userUuid: uuid,
         reasonCode: withdrawalReason,
         reasonText: withdrawalReasonText,
       });
 
-      await userRepo.softDelete({ uuid });
+      await userRepo.delete({ uuid });
       await queryRunner.commitTransaction();
     } catch (err) {
       await queryRunner.rollbackTransaction();

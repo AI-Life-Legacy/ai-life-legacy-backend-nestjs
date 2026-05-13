@@ -8,11 +8,12 @@ import { GetUUID } from '../../common/deco/get-user.decorator';
 import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO, UpdateNotificationSettingsDTO } from './dto/request/user.dto';
 import { TocWithQuestionsDTO, UserAnswerResponseDTO, UserChapterDTO, UserTocResultDTO } from './dto/response/user.dto';
 import { QuestionResponseDTO } from '../life-legacy/dto/response/life-legacy.dto';
+import { WriterOnlyGuard } from '../jwt/role.guard';
 
 @ApiTags('users/me')
 @Controller('users/me')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, WriterOnlyGuard)
 export class UserController {
   constructor(private userService: UserService) {}
 
@@ -97,10 +98,10 @@ export class UserController {
 
   @Delete('/')
   @ApiOperation({ summary: '회원탈퇴 API' })
-  @ApiOkResponse({ description: '최근 검색 기록 삭제 성공', type: SuccessNoResultResponseDTO })
+  @ApiOkResponse({ description: '회원탈퇴 성공', type: SuccessResponseDTO })
   async deleteUser(@GetUUID() uuid: string, @Body() withdrawalDTO: SaveUserWithdrawalDTO) {
     await this.userService.deleteUser(uuid, withdrawalDTO);
-    return new SuccessNoResultResponseDTO();
+    return new SuccessResponseDTO(true);
   }
 
   @Post('/profile-image')

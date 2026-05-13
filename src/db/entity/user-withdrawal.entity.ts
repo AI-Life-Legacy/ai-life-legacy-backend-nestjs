@@ -6,6 +6,9 @@ export class UserWithdrawal {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column('uuid', { name: 'user_uuid' })
+  userUuid: string;
+
   @Column('varchar', { name: 'reason_code', length: 32 })
   reasonCode: WithdrawalReasonCode;
 
