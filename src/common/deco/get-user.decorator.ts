@@ -6,5 +6,6 @@ export const GetUUID = createParamDecorator((data, ctx: ExecutionContext): strin
   if (!req.user) {
     throw new UnauthorizedException('Authentication required');
   }
-  return req.user.uuid;
+  // 일반 유저면 uuid, 뷰어면 authorUserId (AI 채팅 컨텍스트용)
+  return req.user.uuid || req.user.authorUserId;
 });

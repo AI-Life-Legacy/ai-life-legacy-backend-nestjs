@@ -10,6 +10,7 @@ import { CreateUserRepository } from '../transaction/create-user.repository';
 import { LoggerService } from '../logger/logger.service';
 import { LoginDTO, RefreshTokenDto, SignupDTO, ViewerLoginRequestDTO } from './dto/request/auth.dto';
 import { JwtTokenResponseDTO, ViewerLoginResponseDTO } from './dto/response/auth.dto';
+import { ViewerCodeRepository } from '../life-legacy/viewer-code.repository';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private authIdentityRepository: AuthIdentityRepository,
     private readonly loggerService: LoggerService,
     private transactionRepository: CreateUserRepository,
+    private viewerCodeRepository: ViewerCodeRepository,
   ) {}
 
   private hashToken(token: string): string {
@@ -122,15 +124,43 @@ export class AuthService {
   async viewerLogin(viewerLoginRequestDTO: ViewerLoginRequestDTO): Promise<ViewerLoginResponseDTO> {
     const { viewerCode } = viewerLoginRequestDTO;
 
-    // TODO: DB에서 viewerCode 조회 및 검증 로직 구현
-    // 현재는 하드코딩된 값으로 동작 확인용
-    if (viewerCode !== 'A3F7K2') {
-      // throw new UnauthorizedException('Invalid viewer code');
+    // 1. DB에서 viewerCode 조회
+    const codeRecord = await this.viewerCodeRepository.findByCode(viewerCode);
+
+    if (!codeRecord) {
+      throw new NotFoundException('유효하지 않은 뷰어 코드입니다.');
     }
 
-    const accessToken = this.generateAccessToken({ role: 'viewer', code: viewerCode });
-    const authorInfo = { name: '홍길동', intro: '나의 삶의 기록' };
+    // 2. 검증 (ACTIVE, 만료 여부)
+    if (codeRecord.status !== 'ACTIVE') {
+      throw new UnauthorizedException('유효하지 않은 뷰어 코드입니다.');
+    }
 
-    return { accessToken, authorInfo };
+    if (new Date() > codeRecord.expiresAt) {
+      throw new UnauthorizedException('만료된 뷰어 코드입니다.');
+    }
+
+    // 3. 작성자 정보 구성
+    const authorName = codeRecord.authorUser.userCase?.name || '작성자';
+    const authorIntro = codeRecord.authorUser.intros?.[0]?.introText || '작성자 소개가 없습니다.';
+
+    // 4. Viewer JWT 발급
+    const payload = {
+      type: 'viewer',
+      viewerCode: codeRecord.viewerCode,
+      authorUserId: codeRecord.authorUserUuid,
+      autobiographyResultId: codeRecord.autobiographyResultId,
+      pdfUrl: codeRecord.pdfUrl,
+    };
+
+    const accessToken = this.generateAccessToken(payload);
+
+    return {
+      accessToken,
+      authorInfo: {
+        name: authorName,
+        intro: authorIntro,
+      },
+    };
   }
 }
