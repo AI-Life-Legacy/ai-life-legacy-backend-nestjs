@@ -87,9 +87,10 @@ export class ChatDTO {
   })
   @IsString()
   message: string;
+
   @ApiProperty({
-    description: '채팅 역할 (선택). 생략 시 기본값 "아버지"로 동작합니다.',
-    example: '아버지',
+    description: '채팅 역할 한글 또는 영문명 (선택)',
+    example: '큐레이터',
     required: false,
   })
   @IsString()
@@ -97,8 +98,8 @@ export class ChatDTO {
   role?: string;
 
   @ApiProperty({
-    description: '역할 ID (선택)',
-    example: 'father',
+    description: '역할 ID (선택). 기본값 "curator"',
+    example: 'curator',
     required: false,
   })
   @IsString()
@@ -113,6 +114,19 @@ export class ChatDTO {
   @IsString()
   @IsOptional()
   session_id?: string;
+}
+
+export class ChatResponseDTO {
+  @ApiProperty({ description: '아바타 응답', example: '아바타 응답' })
+  @IsString()
+  answer: string;
+
+  @ApiProperty({ description: '세션 ID', example: 'session-id' })
+  @IsString()
+  sessionId: string;
+
+  @ApiProperty({ description: '컨텍스트 사용 여부', example: true })
+  contextUsed: boolean;
 }
 
 export class AutobiographyStatusResponseDTO {
@@ -164,11 +178,65 @@ export class SearchResponseDTO {
 }
 
 export class AutobiographyResponseDTO {
+  @ApiProperty({ description: '생성 상태', example: 'COMPLETED' })
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @ApiProperty({ description: '캐시 사용 여부', example: true })
+  @IsOptional()
+  cached?: boolean;
+
+  @ApiProperty({ description: '생성된 PDF 파일 URL', example: '/pdfs/user_abc123.pdf' })
+  @IsString()
+  @IsOptional()
+  pdfUrl?: string;
+
   @ApiProperty({ description: '생성된 마크다운 파일 내용 또는 경로', example: '# 나의 자서전...' })
   @IsString()
-  markdown: string;
+  @IsOptional()
+  markdown?: string;
 
-  @ApiProperty({ description: '생성된 PDF 파일 경로', example: '/pdfs/user_abc123.pdf' })
+  @ApiProperty({ description: '생성된 PDF 파일 경로 (Legacy)', example: '/pdfs/user_abc123.pdf' })
   @IsString()
-  pdfPath: string;
+  @IsOptional()
+  pdfPath?: string;
+
+  @ApiProperty({ description: '총 페이지 수', example: 42 })
+  @IsNumber()
+  @IsOptional()
+  pageCount?: number;
+
+  @ApiProperty({ description: '메시지', example: '자서전을 생성 중입니다.' })
+  @IsString()
+  @IsOptional()
+  message?: string;
+}
+
+export class MyAutobiographyStatusResponseDTO {
+  @ApiProperty({ description: '생성 상태', example: 'COMPLETED' })
+  @IsString()
+  status: string;
+
+  @ApiProperty({ description: '캐시 사용 여부', example: true })
+  cached: boolean;
+
+  @ApiProperty({ description: '생성된 PDF 파일 URL', example: '/pdfs/user_abc123.pdf', required: false })
+  @IsString()
+  @IsOptional()
+  pdfUrl?: string;
+
+  @ApiProperty({ description: '총 페이지 수', example: 25, required: false })
+  @IsNumber()
+  @IsOptional()
+  pageCount?: number;
+
+  @ApiProperty({ description: '생성 완료 일시', example: '2026-05-12T13:00:29.000Z', required: false })
+  @IsOptional()
+  generatedAt?: Date | string;
+
+  @ApiProperty({ description: '에러 메시지', example: 'Error occurred', required: false })
+  @IsString()
+  @IsOptional()
+  errorMessage?: string;
 }
