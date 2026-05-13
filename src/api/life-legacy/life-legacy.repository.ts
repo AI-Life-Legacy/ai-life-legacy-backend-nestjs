@@ -9,7 +9,7 @@ export class LifeLegacyRepository {
     @InjectRepository(LifeLegacyAnswer)
     private lifeLegacyRepository: Repository<LifeLegacyAnswer>,
     private loggerService: LoggerService,
-  ) { }
+  ) {}
 
   async findOneUserAnswerByUuidAndQuestionId(uuid: string, tocId: number, questionId: number) {
     try {

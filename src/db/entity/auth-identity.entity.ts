@@ -20,6 +20,6 @@ export class AuthIdentity {
   createdAt: Date;
 
   @ManyToOne(() => User, (user) => user.authIdentities, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_uuid', referencedColumnName: 'uuid' }) 
+  @JoinColumn({ name: 'user_uuid', referencedColumnName: 'uuid' })
   user: User;
 }
