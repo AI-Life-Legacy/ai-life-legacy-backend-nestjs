@@ -5,11 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LifeLegacyRepository } from './life-legacy.repository';
 import { LifeLegacyAnswer } from '../../db/entity/life-legacy-answer.entity';
 import { LifeLegacyQuestionModule } from '../life-legacy-question/life-legacy-question.module';
+import { ViewerCode } from '../../db/entity/viewer-code.entity';
+import { AutobiographyResult } from '../../db/entity/autobiography-result.entity';
+import { ViewerCodeRepository } from './viewer-code.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LifeLegacyAnswer]), LifeLegacyQuestionModule],
+  imports: [TypeOrmModule.forFeature([LifeLegacyAnswer, ViewerCode, AutobiographyResult]), LifeLegacyQuestionModule],
   controllers: [LifeLegacyController],
-  providers: [LifeLegacyService, LifeLegacyRepository],
-  exports: [LifeLegacyRepository],
+  providers: [LifeLegacyService, LifeLegacyRepository, ViewerCodeRepository],
+  exports: [LifeLegacyRepository, ViewerCodeRepository],
 })
 export class LifeLegacyModule {}
