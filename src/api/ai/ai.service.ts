@@ -91,8 +91,6 @@ export class AiService {
   async generateQuestion(makeReQuestionDTO: MakeReQuestionDTO): Promise<AIResponseDTO> {
     const { question, data, tocId } = makeReQuestionDTO;
 
-    console.log('[API/question frontend body]', makeReQuestionDTO);
-
     const aiPayload = {
       toc_id: tocId || 1,
       current_answer: data,
@@ -108,8 +106,6 @@ export class AiService {
       ],
     };
 
-    console.log('[AI/question payload]', aiPayload);
-
     const response = await fetch('http://localhost:8000/api/v1/generation/question', {
       method: 'POST',
       headers: {
@@ -120,8 +116,6 @@ export class AiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.log('[AI/question error status]', response.status);
-      console.log('[AI/question error data]', errorData);
       throw new Error(`AI Server Error: ${response.status}`);
     }
 

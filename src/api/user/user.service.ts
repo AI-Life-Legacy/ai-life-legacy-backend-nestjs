@@ -133,11 +133,9 @@ export class UserService {
 
   async updateProfileImage(userId: string, file: any): Promise<void> {
     // TODO: S3 업로드 로직 등 구현
-    console.log(`Uploading profile image for user ${userId}`);
   }
 
   async updateNotificationSettings(userId: string, settings: UpdateNotificationSettingsDTO): Promise<void> {
     // TODO: DB 저장 로직 구현
-    console.log(`Updating notification settings for user ${userId}:`, settings);
   }
 }
