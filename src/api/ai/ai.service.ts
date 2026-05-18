@@ -77,12 +77,13 @@ export class AiService {
   }
 
   async memorySync(syncDTO: SyncDTO, userId: string): Promise<void> {
-    const response = await fetch('http://localhost:8000/api/v1/sync', {
+    const response = await fetch('http://localhost:8000/api/v1/rag/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         userId,
         text: syncDTO.content,
+        metadata: {},
       }),
     });
     if (!response.ok) throw new Error(`AI Server Error: ${response.status}`);
@@ -539,7 +540,7 @@ export class AiService {
   }
 
   async search(searchDTO: SearchDTO, userId: string): Promise<SearchResponseDTO> {
-    const response = await fetch('http://localhost:8000/api/v1/search', {
+    const response = await fetch('http://localhost:8000/api/v1/rag/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

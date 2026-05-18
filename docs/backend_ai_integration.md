@@ -25,8 +25,8 @@
 | `POST /api/question` | `POST /api/v1/generation/question` | `{ toc_id, current_answer, chat_history: [...] }` | `{ question: "질문 텍스트" }` | `{ question: "질문 텍스트" }` | 설정 안 됨 | 응답 데이터 누락 시 `500 Error` |
 | `POST /api/autobiography` | `POST /api/v1/generation/autobiography` | `{ user_id, userName, chapters: [...], force }` | `{ pdf_url, page_count, mdPath }` | `{ status, cached, pdfUrl, pageCount, markdown, pdfPath }` | **360초** (6분) | `429/403/500` 코드 변환. 재생성 실패 시 복원 후 `500 에러` (기존 PDF URL 동봉) |
 | `POST /api/chat` | `POST /api/v1/chat/chat` | `{ user_id, session_id, role_id, message, viewer_id }` | `{ answer, session_id, context_used }` | `{ answer, sessionId, contextUsed }` | **30초** | Timeout 시 `504` 응답, 422 시 `422 Unprocessable Entity` 매핑 |
-| `POST /api/sync` | `POST /api/v1/sync` | `{ userId, text }` | (결과 없음) | 상태코드 200 반환 | 설정 안 됨 | 실패 시 `500 Error` |
-| `POST /api/search` | `POST /api/v1/search` | `{ userId, query }` | `{ results: [...] }` | `{ results: [...] }` | 설정 안 됨 | 실패 시 `500 Error` |
+| `POST /api/sync` | `POST /api/v1/rag/sync` | `{ userId, text, metadata: {} }` | (결과 없음) | 상태코드 200 반환 | 설정 안 됨 | 실패 시 `500 Error` |
+| `POST /api/search` | `POST /api/v1/rag/search` | `{ userId, query }` | `{ results: [...] }` | `{ results: [...] }` | 설정 안 됨 | 실패 시 `500 Error` |
 
 ---
 

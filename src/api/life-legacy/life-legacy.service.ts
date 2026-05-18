@@ -41,6 +41,32 @@ export class LifeLegacyService {
     const existResponse = await this.lifeLegacyRepository.findOneUserAnswerByUuidAndQuestionId(uuid, tocId, questionId);
 
     await this.lifeLegacyRepository.saveUserAnswer(uuid, questionId, answer, existResponse?.id);
+
+    // AI Vector DB 자동 동기화 (RAG 싱크 유실을 원천 차단하여 언제나 로컬 및 클라우드 동기화 상태를 유지)
+    try {
+      const question = await this.lifeLegacyQuestionRepository.findOneQuestionById(questionId);
+      const questionText = question ? question.questionText : '';
+      const syncText = questionText ? `질문: ${questionText}\n답변: ${answer}` : answer;
+
+      const aiServerUrl = 'http://localhost:8000';
+      await fetch(`${aiServerUrl}/api/v1/rag/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: uuid,
+          text: syncText,
+          metadata: {
+            question_id: questionId,
+            source: 'backend_save',
+            type: 'user_answer',
+          },
+        }),
+      });
+      console.log(`[RAG Sync] Automatically synced answer for user ${uuid}, question ${questionId} to AI server.`);
+    } catch (syncErr) {
+      // 싱크 에러가 유저 답변 저장 자체를 방해하지 않도록 예외 처리 후 경고 로그만 남김
+      console.warn(`[RAG Sync Warning] Failed to auto-sync answer to AI server: ${syncErr.message}`);
+    }
   }
 
   async shareAutobiography(userId: string, tocId?: number): Promise<ShareResponseDTO> {

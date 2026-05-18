@@ -24,4 +24,15 @@ export class LifeLegacyQuestionRepository {
       throw new InternalServerErrorException(err);
     }
   }
+
+  async findOneQuestionById(id: number) {
+    try {
+      return await this.lifeLegacyRepository.findOne({
+        where: { id },
+      });
+    } catch (err) {
+      this.loggerService.warn(`Life-Legacy/FindOneQuestionById Error : ${err}`);
+      throw new InternalServerErrorException(err);
+    }
+  }
 }
