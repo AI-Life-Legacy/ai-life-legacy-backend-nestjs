@@ -12,6 +12,8 @@ import {
   SearchDTO,
   SearchResponseDTO,
   AutobiographyResponseDTO,
+  AutobiographyFeedbackRequestDTO,
+  AutobiographyFeedbackResponseDTO,
   CaseResponseDTO,
   AutobiographyStatusResponseDTO,
   MyAutobiographyStatusResponseDTO,
@@ -69,6 +71,14 @@ export class AiController {
   @ApiSuccessResponse(MyAutobiographyStatusResponseDTO)
   async getMyAutobiographyStatus(@GetUUID() uuid: string) {
     return new SuccessResponseDTO(await this.aiService.getMyAutobiographyStatus(uuid));
+  }
+
+  @Post('/autobiography/feedback')
+  @UseGuards(WriterOnlyGuard)
+  @ApiOperation({ summary: '자서전 완성도 및 만족도 평가 저장 API' })
+  @ApiSuccessResponse(AutobiographyFeedbackResponseDTO)
+  async saveAutobiographyFeedback(@GetUUID() uuid: string, @Body() dto: AutobiographyFeedbackRequestDTO) {
+    return new SuccessResponseDTO(await this.aiService.saveAutobiographyFeedback(uuid, dto));
   }
 
   @Get('/autobiography/status/:tocId')

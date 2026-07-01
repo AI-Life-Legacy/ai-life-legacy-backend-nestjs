@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `viewer_codes` (
   UNIQUE KEY `UQ_viewer_code` (`viewer_code`),
   CONSTRAINT `FK_viewer_codes_author` FOREIGN KEY (`author_user_uuid`) REFERENCES `users` (`uuid`) ON DELETE CASCADE,
   CONSTRAINT `FK_viewer_codes_result` FOREIGN KEY (`autobiography_result_id`) REFERENCES `autobiography_results` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- user_withdrawals 테이블 스키마 보정 (user_uuid 컬럼 추가)
 -- TypeORM synchronize:false 환경에서 수동 반영용
@@ -42,3 +42,22 @@ ALTER TABLE `user_intros` ADD CONSTRAINT `FK_user_intros_user` FOREIGN KEY (`use
 -- autobiography_results (user_uuid -> users.uuid)
 ALTER TABLE `autobiography_results` DROP FOREIGN KEY IF EXISTS `FK_autobiography_results_user`;
 ALTER TABLE `autobiography_results` ADD CONSTRAINT `FK_autobiography_results_user` FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`) ON DELETE CASCADE;
+
+-- autobiography_feedbacks 테이블 생성
+CREATE TABLE IF NOT EXISTS `autobiography_feedbacks` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_uuid` char(36) NOT NULL,
+  `autobiography_result_id` int NULL,
+  `rating` tinyint NOT NULL,
+  `feedback_tags` text NULL,
+  `comment` text NULL,
+  `wants_regeneration` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  KEY `IDX_autobiography_feedbacks_user_uuid` (`user_uuid`),
+  KEY `IDX_autobiography_feedbacks_result_id` (`autobiography_result_id`),
+  CONSTRAINT `FK_autobiography_feedbacks_user` FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`) ON DELETE CASCADE,
+  CONSTRAINT `FK_autobiography_feedbacks_result` FOREIGN KEY (`autobiography_result_id`) REFERENCES `autobiography_results` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `CHK_autobiography_feedbacks_rating` CHECK (`rating` BETWEEN 1 AND 5)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

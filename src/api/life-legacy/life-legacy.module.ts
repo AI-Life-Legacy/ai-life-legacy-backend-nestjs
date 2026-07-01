@@ -8,9 +8,17 @@ import { LifeLegacyQuestionModule } from '../life-legacy-question/life-legacy-qu
 import { ViewerCode } from '../../db/entity/viewer-code.entity';
 import { AutobiographyResult } from '../../db/entity/autobiography-result.entity';
 import { ViewerCodeRepository } from './viewer-code.repository';
+import { User } from '../../db/entity/user.entity';
+import { UserIntroModule } from '../user-intro/user-intro.module';
+import { UserCaseModule } from '../user-case/user-case.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LifeLegacyAnswer, ViewerCode, AutobiographyResult]), LifeLegacyQuestionModule],
+  imports: [
+    TypeOrmModule.forFeature([LifeLegacyAnswer, ViewerCode, AutobiographyResult, User]),
+    LifeLegacyQuestionModule,
+    UserIntroModule,
+    UserCaseModule,
+  ],
   controllers: [LifeLegacyController],
   providers: [LifeLegacyService, LifeLegacyRepository, ViewerCodeRepository],
   exports: [LifeLegacyRepository, ViewerCodeRepository],

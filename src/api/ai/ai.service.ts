@@ -13,6 +13,8 @@ import {
   SearchResponseDTO,
   AutobiographyResponseDTO,
   AutobiographyStatusResponseDTO,
+  AutobiographyFeedbackRequestDTO,
+  AutobiographyFeedbackResponseDTO,
   MyAutobiographyStatusResponseDTO,
 } from './dto/ai.dto';
 import { LoggerService } from '../logger/logger.service';
@@ -20,10 +22,18 @@ import { SaveUserIntroductionRepository } from '../transaction/save-user-introdu
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AutobiographyResult, AutobiographyStatus } from '../../db/entity/autobiography-result.entity';
+import { AutobiographyFeedback } from '../../db/entity/autobiography-feedback.entity';
 import { LifeLegacyAnswer } from '../../db/entity/life-legacy-answer.entity';
 import { User } from '../../db/entity/user.entity';
 import { UserCaseRepository } from '../user-case/user-case.repository';
 import * as crypto from 'crypto';
+import { UserIntroRepository } from '../user-intro/user-intro.repository';
+import {
+  buildPersonalizedTocPlan,
+  parseAutobiographyPersonalization,
+  personalizeChapterTitle,
+  personalizeQuestionText,
+} from '../../common/personalization/autobiography-toc.personalization';
 
 @Injectable()
 export class AiService {
@@ -37,11 +47,14 @@ export class AiService {
     private readonly saveUserTransactionRepository: SaveUserIntroductionRepository,
     @InjectRepository(AutobiographyResult)
     private autobiographyResultRepository: Repository<AutobiographyResult>,
+    @InjectRepository(AutobiographyFeedback)
+    private autobiographyFeedbackRepository: Repository<AutobiographyFeedback>,
     @InjectRepository(LifeLegacyAnswer)
     private lifeLegacyAnswerRepository: Repository<LifeLegacyAnswer>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private userCaseRepository: UserCaseRepository,
+    private userIntroRepository: UserIntroRepository,
   ) {
     this.apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.organization = this.configService.get<string>('OPENAI_ORGANIZATION');
@@ -196,8 +209,22 @@ export class AiService {
       throw new HttpException('모든 질문에 대한 답변이 완료되지 않았습니다.', HttpStatus.BAD_REQUEST);
     }
 
+    const latestFeedback = await this.autobiographyFeedbackRepository.findOne({
+      where: { userUuid: userId },
+      order: { createdAt: 'DESC' },
+    });
+
     // 5. contentHash 기반 캐싱 적용를 위한 hash 계산
-    const concatenatedAnswers = answers.map((a) => a.answerText).join('|||');
+    const feedbackHashPart = latestFeedback
+      ? JSON.stringify({
+          rating: latestFeedback.rating,
+          tags: latestFeedback.feedbackTags || [],
+          comment: latestFeedback.comment || '',
+          wantsRegeneration: latestFeedback.wantsRegeneration,
+          updatedAt: latestFeedback.updatedAt?.toISOString?.() || latestFeedback.createdAt?.toISOString?.(),
+        })
+      : '';
+    const concatenatedAnswers = `${answers.map((a) => a.answerText).join('|||')}|||${feedbackHashPart}`;
     const contentHash = crypto.createHash('sha256').update(concatenatedAnswers).digest('hex');
 
     let resultRecord = await this.autobiographyResultRepository.findOne({
@@ -221,6 +248,8 @@ export class AiService {
           cached: true,
           pdfUrl: resultRecord.pdfUrl,
           pageCount: resultRecord.pageCount || 42,
+          markdown: undefined,
+          markdownUrl: this.buildAutobiographyMarkdownUrl(userId, resultRecord.contentHash),
         };
       }
     }
@@ -251,6 +280,10 @@ export class AiService {
     this.activeAutobiographyGenerations.add(userId);
 
     // 6. AI 서버 요청을 위한 chapters 구성 (요청 body 예시 준수)
+    const userIntro = await this.userIntroRepository.findUserIntroByUuid(userId);
+    const personalization = parseAutobiographyPersonalization(userIntro?.introText);
+    const personalizedTocPlan = buildPersonalizedTocPlan(personalization);
+    const userName = personalization.name || '사용자';
     const sortedMappings = [...userCaseData.tocMappings].sort((a, b) => a.orderIndex - b.orderIndex);
     const chaptersPayload = [];
 
@@ -260,10 +293,12 @@ export class AiService {
         if (mapping.toc.questions) {
           for (const q of mapping.toc.questions) {
             const ans = answers.find((a) => a.question.id === q.id);
+            const questionIndex = mapping.toc.questions.findIndex((question) => question.id === q.id);
+            const personalizedTitle = personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization);
             if (ans) {
               chapterQuestions.push({
                 question_id: q.id,
-                question: q.questionText,
+                question: personalizeQuestionText(q.questionText, personalizedTitle, questionIndex, personalization),
                 answer: ans.answerText,
               });
             }
@@ -271,7 +306,7 @@ export class AiService {
         }
         chaptersPayload.push({
           toc_id: mapping.toc.id,
-          title: mapping.toc.title,
+          title: personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
           questions: chapterQuestions,
         });
       }
@@ -283,8 +318,27 @@ export class AiService {
 
       const requestBody = {
         user_id: userId,
-        userName: '사용자',
+        userName,
         chapters: chaptersPayload,
+        personalization: {
+          name: personalization.name,
+          age: personalization.age,
+          lifeStage: personalization.lifeStage,
+          purposes: personalization.purposes,
+          style: personalization.style,
+          styleId: this.mapStyleToId(personalization.style),
+          tocPlan: personalizedTocPlan,
+          feedback: latestFeedback
+            ? {
+                rating: latestFeedback.rating,
+                tags: latestFeedback.feedbackTags || [],
+                comment: latestFeedback.comment || '',
+                wantsRegeneration: latestFeedback.wantsRegeneration,
+              }
+            : undefined,
+        },
+        theme: this.mapStyleToPdfTheme(personalization.style),
+        generate_illustrations: false,
         force,
       };
 
@@ -364,6 +418,7 @@ export class AiService {
         pdfUrl: resultRecord.pdfUrl,
         pageCount: resultRecord.pageCount,
         markdown: result.mdPath || result.markdownPath || result.markdown || '',
+        markdownUrl: result.markdown_url || result.markdownUrl || '',
         pdfPath: resultRecord.pdfUrl,
       };
     } catch (error) {
@@ -427,8 +482,35 @@ export class AiService {
       cached: resultRecord.status === AutobiographyStatus.COMPLETED,
       pdfUrl: resultRecord.pdfUrl || undefined,
       pageCount: resultRecord.pageCount || undefined,
+      markdownUrl: this.buildAutobiographyMarkdownUrl(userId, resultRecord.contentHash),
       generatedAt: resultRecord.completedAt || resultRecord.updatedAt,
       errorMessage: resultRecord.errorMessage || undefined,
+    };
+  }
+
+  async saveAutobiographyFeedback(userId: string, dto: AutobiographyFeedbackRequestDTO): Promise<AutobiographyFeedbackResponseDTO> {
+    const resultRecord = await this.autobiographyResultRepository.findOne({
+      where: { userUuid: userId },
+    });
+
+    const feedback = this.autobiographyFeedbackRepository.create({
+      userUuid: userId,
+      user: { uuid: userId } as any,
+      autobiographyResultId: resultRecord?.id,
+      autobiographyResult: resultRecord || undefined,
+      rating: dto.rating,
+      feedbackTags: dto.feedbackTags || [],
+      comment: dto.comment?.trim() || null,
+      wantsRegeneration: dto.wantsRegeneration === true,
+    });
+
+    const saved = await this.autobiographyFeedbackRepository.save(feedback);
+    return {
+      id: saved.id,
+      rating: saved.rating,
+      feedbackTags: saved.feedbackTags || [],
+      comment: saved.comment || undefined,
+      wantsRegeneration: saved.wantsRegeneration,
     };
   }
 
@@ -441,6 +523,27 @@ export class AiService {
       throw new Error(`AI Server Error: ${response.status}`);
     }
     return await response.json();
+  }
+
+  private buildAutobiographyMarkdownUrl(userId: string, contentHash?: string | null): string | undefined {
+    if (!contentHash) return undefined;
+    const publicUrl = this.configService.get<string>('AI_SERVER_PUBLIC_URL') || 'http://localhost:8000';
+    return `${publicUrl.replace(/\/$/, '')}/storage/data/autobiography_${userId}_${contentHash}.md`;
+  }
+
+  private mapStyleToPdfTheme(style?: string): string {
+    if (style === '따뜻하고 감성적으로') return 'warm';
+    if (style === '담담하고 객관적으로') return 'modern';
+    if (style === '짧고 간단하게') return 'modern';
+    return 'classic';
+  }
+
+  private mapStyleToId(style?: string): string {
+    if (style === '짧고 간단하게') return 'simple';
+    if (style === '따뜻하고 감성적으로') return 'warm';
+    if (style === '담담하고 객관적으로') return 'calm';
+    if (style === '책처럼 문학적으로') return 'literary';
+    return 'detailed';
   }
 
   private mapRoleToId(roleId?: string, role?: string): string {

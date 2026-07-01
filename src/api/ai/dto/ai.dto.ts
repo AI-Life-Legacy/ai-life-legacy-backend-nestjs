@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class MakeCaseDTO {
@@ -197,6 +197,11 @@ export class AutobiographyResponseDTO {
   @IsOptional()
   markdown?: string;
 
+  @ApiProperty({ description: '앱 내 전자책 리더에서 사용할 마크다운 파일 URL', example: '/storage/data/user.md' })
+  @IsString()
+  @IsOptional()
+  markdownUrl?: string;
+
   @ApiProperty({ description: '생성된 PDF 파일 경로 (Legacy)', example: '/pdfs/user_abc123.pdf' })
   @IsString()
   @IsOptional()
@@ -211,6 +216,52 @@ export class AutobiographyResponseDTO {
   @IsString()
   @IsOptional()
   message?: string;
+}
+
+export class AutobiographyFeedbackRequestDTO {
+  @ApiProperty({ description: '자서전 만족도 점수', example: 4, minimum: 1, maximum: 5 })
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating: number;
+
+  @ApiProperty({
+    description: '아쉬운 점 또는 개선 방향 태그',
+    example: ['내용을 더 자세히', '더 감성적으로'],
+    required: false,
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  feedbackTags?: string[];
+
+  @ApiProperty({ description: '사용자 자유 의견', example: '가족 이야기를 조금 더 넣고 싶어요.', required: false })
+  @IsString()
+  @IsOptional()
+  comment?: string;
+
+  @ApiProperty({ description: '이 피드백을 바탕으로 재생성하고 싶은지 여부', example: true, required: false })
+  @IsBoolean()
+  @IsOptional()
+  wantsRegeneration?: boolean;
+}
+
+export class AutobiographyFeedbackResponseDTO {
+  @ApiProperty({ description: '저장된 평가 ID', example: 1 })
+  id: number;
+
+  @ApiProperty({ description: '자서전 만족도 점수', example: 4 })
+  rating: number;
+
+  @ApiProperty({ description: '아쉬운 점 또는 개선 방향 태그', example: ['내용을 더 자세히', '더 감성적으로'], type: [String] })
+  feedbackTags: string[];
+
+  @ApiProperty({ description: '사용자 자유 의견', example: '가족 이야기를 조금 더 넣고 싶어요.', required: false })
+  comment?: string;
+
+  @ApiProperty({ description: '이 피드백을 바탕으로 재생성하고 싶은지 여부', example: true })
+  wantsRegeneration: boolean;
 }
 
 export class MyAutobiographyStatusResponseDTO {
@@ -230,6 +281,11 @@ export class MyAutobiographyStatusResponseDTO {
   @IsNumber()
   @IsOptional()
   pageCount?: number;
+
+  @ApiProperty({ description: '앱 내 전자책 리더에서 사용할 마크다운 파일 URL', example: '/storage/data/user.md', required: false })
+  @IsString()
+  @IsOptional()
+  markdownUrl?: string;
 
   @ApiProperty({ description: '생성 완료 일시', example: '2026-05-12T13:00:29.000Z', required: false })
   @IsOptional()

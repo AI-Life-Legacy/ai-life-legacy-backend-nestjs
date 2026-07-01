@@ -7,6 +7,11 @@ import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO, UpdateNotificati
 import { SaveUserIntroductionRepository } from '../transaction/save-user-introduction.repository';
 import { TocWithQuestionsDTO, UserAnswerResponseDTO } from './dto/response/user.dto';
 import { DeleteUserRepository } from '../transaction/delete-user.repository';
+import {
+  parseAutobiographyPersonalization,
+  personalizeChapterTitle,
+  personalizeQuestionText,
+} from '../../common/personalization/autobiography-toc.personalization';
 
 @Injectable()
 export class UserService {
@@ -49,9 +54,11 @@ export class UserService {
     }
 
     const result = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
+    const userIntro = await this.userIntroRepository.findUserIntroByUuid(uuid);
+    const personalization = parseAutobiographyPersonalization(userIntro?.introText);
     const tocQuestions = result.tocMappings.map((mapping) => ({
       tocId: mapping.toc.id,
-      tocTitle: mapping.toc.title,
+      tocTitle: personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
       questionIds: mapping.toc.questions.map((q) => q.id),
     }));
 
@@ -92,14 +99,21 @@ export class UserService {
     if (!caseId) return [];
 
     const tocAndQuestions = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
+    const userIntro = await this.userIntroRepository.findUserIntroByUuid(uuid);
+    const personalization = parseAutobiographyPersonalization(userIntro?.introText);
 
     return tocAndQuestions.tocMappings.map((mapping) => ({
       tocId: mapping.toc.id,
-      tocTitle: mapping.toc.title,
+      tocTitle: personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
       orderIndex: mapping.orderIndex,
-      questions: mapping.toc.questions.map((q) => ({
+      questions: mapping.toc.questions.map((q, index) => ({
         id: q.id,
-        questionText: q.questionText,
+        questionText: personalizeQuestionText(
+          q.questionText,
+          personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
+          index,
+          personalization,
+        ),
       })),
     }));
   }
