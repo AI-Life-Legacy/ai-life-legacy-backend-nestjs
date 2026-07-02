@@ -17,6 +17,7 @@ import {
   CaseResponseDTO,
   AutobiographyStatusResponseDTO,
   MyAutobiographyStatusResponseDTO,
+  GenerateAutobiographyRequestDTO,
 } from './dto/ai.dto';
 import { SuccessNoResultResponseDTO, SuccessResponseDTO } from 'src/common/response/response.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
@@ -60,9 +61,13 @@ export class AiController {
   @UseGuards(WriterOnlyGuard)
   @ApiOperation({ summary: '자서전 제작 및 PDF 발행 API' })
   @ApiSuccessResponse(AutobiographyResponseDTO)
-  async generateAutobiography(@GetUUID() uuid: string, @Query('force') force: string) {
+  async generateAutobiography(
+    @GetUUID() uuid: string,
+    @Query('force') force: string,
+    @Body() dto: GenerateAutobiographyRequestDTO = {},
+  ) {
     const isForce = force === 'true' || (force as any) === true;
-    return new SuccessResponseDTO(await this.aiService.generateAutobiography(uuid, isForce));
+    return new SuccessResponseDTO(await this.aiService.generateAutobiography(uuid, isForce, dto.templateId || dto.theme));
   }
 
   @Get('/autobiography/status')

@@ -218,6 +218,18 @@ export class AutobiographyResponseDTO {
   message?: string;
 }
 
+export class GenerateAutobiographyRequestDTO {
+  @ApiProperty({ description: 'Selected PDF design template', example: 'classic', required: false })
+  @IsString()
+  @IsOptional()
+  templateId?: string;
+
+  @ApiProperty({ description: 'Legacy PDF theme alias', example: 'classic', required: false })
+  @IsString()
+  @IsOptional()
+  theme?: string;
+}
+
 export class AutobiographyFeedbackRequestDTO {
   @ApiProperty({ description: '자서전 만족도 점수', example: 4, minimum: 1, maximum: 5 })
   @IsInt()

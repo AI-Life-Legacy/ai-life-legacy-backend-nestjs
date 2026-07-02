@@ -156,7 +156,8 @@ export class AiService {
     return crypto.createHash('sha256').update(concatenatedAnswers).digest('hex');
   }
 
-  async generateAutobiography(userId: string, force: boolean = false): Promise<AutobiographyResponseDTO> {
+  async generateAutobiography(userId: string, force: boolean = false, templateId?: string): Promise<AutobiographyResponseDTO> {
+    const selectedTemplateId = this.normalizePdfTemplateId(templateId);
     // 1. 사용자 및 사용자 케이스 정보 조회
     const user = await this.userRepository.findOne({
       where: { uuid: userId },
@@ -224,7 +225,7 @@ export class AiService {
           updatedAt: latestFeedback.updatedAt?.toISOString?.() || latestFeedback.createdAt?.toISOString?.(),
         })
       : '';
-    const concatenatedAnswers = `${answers.map((a) => a.answerText).join('|||')}|||${feedbackHashPart}`;
+    const concatenatedAnswers = `${answers.map((a) => a.answerText).join('|||')}|||${feedbackHashPart}|||template:${selectedTemplateId}`;
     const contentHash = crypto.createHash('sha256').update(concatenatedAnswers).digest('hex');
 
     let resultRecord = await this.autobiographyResultRepository.findOne({
@@ -249,7 +250,7 @@ export class AiService {
           pdfUrl: resultRecord.pdfUrl,
           pageCount: resultRecord.pageCount || 42,
           markdown: undefined,
-          markdownUrl: this.buildAutobiographyMarkdownUrl(userId, resultRecord.contentHash),
+          markdownUrl: this.buildAutobiographyMarkdownUrl(userId, resultRecord.contentHash, resultRecord.pdfUrl),
         };
       }
     }
@@ -337,7 +338,9 @@ export class AiService {
               }
             : undefined,
         },
-        theme: this.mapStyleToPdfTheme(personalization.style),
+        theme: selectedTemplateId,
+        templateId: selectedTemplateId,
+        template_id: selectedTemplateId,
         generate_illustrations: false,
         force,
       };
@@ -482,7 +485,7 @@ export class AiService {
       cached: resultRecord.status === AutobiographyStatus.COMPLETED,
       pdfUrl: resultRecord.pdfUrl || undefined,
       pageCount: resultRecord.pageCount || undefined,
-      markdownUrl: this.buildAutobiographyMarkdownUrl(userId, resultRecord.contentHash),
+      markdownUrl: this.buildAutobiographyMarkdownUrl(userId, resultRecord.contentHash, resultRecord.pdfUrl),
       generatedAt: resultRecord.completedAt || resultRecord.updatedAt,
       errorMessage: resultRecord.errorMessage || undefined,
     };
@@ -525,16 +528,36 @@ export class AiService {
     return await response.json();
   }
 
-  private buildAutobiographyMarkdownUrl(userId: string, contentHash?: string | null): string | undefined {
+  private buildAutobiographyMarkdownUrl(userId: string, contentHash?: string | null, pdfUrl?: string | null): string | undefined {
+    const markdownUrlFromPdf = this.buildAutobiographyMarkdownUrlFromPdfUrl(pdfUrl);
+    if (markdownUrlFromPdf) return markdownUrlFromPdf;
+
     if (!contentHash) return undefined;
     const publicUrl = this.configService.get<string>('AI_SERVER_PUBLIC_URL') || 'http://localhost:8000';
     return `${publicUrl.replace(/\/$/, '')}/storage/data/autobiography_${userId}_${contentHash}.md`;
+  }
+
+  private buildAutobiographyMarkdownUrlFromPdfUrl(pdfUrl?: string | null): string | undefined {
+    if (!pdfUrl) return undefined;
+    const trimmed = pdfUrl.trim();
+    if (!trimmed.endsWith('.pdf')) return undefined;
+    return trimmed
+      .replace('/generated-pdfs/', '/storage/data/')
+      .replace(/\.pdf$/, '.md');
   }
 
   private mapStyleToPdfTheme(style?: string): string {
     if (style === '따뜻하고 감성적으로') return 'warm';
     if (style === '담담하고 객관적으로') return 'modern';
     if (style === '짧고 간단하게') return 'modern';
+    return 'classic';
+  }
+
+  private normalizePdfTemplateId(templateId?: string): string {
+    const normalized = (templateId || '').trim().toLowerCase();
+    if (normalized === 'warm' || normalized === 'modern' || normalized === 'classic') {
+      return normalized;
+    }
     return 'classic';
   }
 
