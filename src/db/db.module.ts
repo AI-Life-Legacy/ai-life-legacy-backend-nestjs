@@ -9,9 +9,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule], // ConfigModule을 가져옴
       inject: [ConfigService], // ConfigService를 주입받음
       useFactory: async (configService: ConfigService) => ({
-        type: 'postgres',
+        type: 'mysql',
         host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
+        port: Number(configService.get<string>('DB_PORT') ?? '6543'),
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
@@ -21,4 +21,4 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     }),
   ],
 })
-export class DatabaseModule { }
+export class DatabaseModule {}

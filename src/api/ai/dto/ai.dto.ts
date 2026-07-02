@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class MakeCaseDTO {
@@ -13,7 +13,25 @@ export class MakeCaseDTO {
   data: string;
 }
 
+export class SyncDTO {
+  @ApiProperty({
+    description: '유저의 답변, 일기, 또는 외부 연동 텍스트',
+    example: '오늘 나는 아내와 함께 속초 바다를 보러 갔다. 아주 즐거운 하루였다.',
+  })
+  @IsString()
+  content: string;
+}
+
 export class MakeReQuestionDTO {
+  @ApiProperty({
+    description: '목차 ID (선택)',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  tocId?: number;
+
   @ApiProperty({
     description: '1차 질문',
     example: '언제 어디서 태어나셨나요? 탄생에 얽힌 이야기가 있나요? 부모님이나 가족들이 당신의 유아기에 대해 어떤 이야기를 해주셨나요?',
@@ -62,8 +80,231 @@ export class CombineDTO {
   data2: string;
 }
 
+export class ChatDTO {
+  @ApiProperty({
+    description: '채팅 메시지',
+    example: '안녕하세요',
+  })
+  @IsString()
+  message: string;
+
+  @ApiProperty({
+    description: '채팅 역할 한글 또는 영문명 (선택)',
+    example: '큐레이터',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  role?: string;
+
+  @ApiProperty({
+    description: '역할 ID (선택). 기본값 "curator"',
+    example: 'curator',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  role_id?: string;
+
+  @ApiProperty({
+    description: '세션 ID (선택)',
+    example: 'session_123',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  session_id?: string;
+}
+
+export class ChatResponseDTO {
+  @ApiProperty({ description: '아바타 응답', example: '아바타 응답' })
+  @IsString()
+  answer: string;
+
+  @ApiProperty({ description: '세션 ID', example: 'session-id' })
+  @IsString()
+  sessionId: string;
+
+  @ApiProperty({ description: '컨텍스트 사용 여부', example: true })
+  contextUsed: boolean;
+}
+
+export class AutobiographyStatusResponseDTO {
+  @ApiProperty({ description: '진행 상태', example: 'PROCESSING' })
+  @IsString()
+  status: string;
+
+  @ApiProperty({ description: '진행률', example: 50 })
+  progress: number;
+
+  @ApiProperty({ description: '메시지', example: 'PDF 생성 중입니다.' })
+  @IsString()
+  message: string;
+}
+
 export class AIResponseDTO {
-  @ApiProperty({ description: 'AIResponse', example: 'AIResponse' })
+  @ApiProperty({ description: 'AI 메시지', example: '안녕하세요' })
+  @IsString()
+  @IsOptional()
+  message?: string;
+
+  @ApiProperty({ description: '생성된 질문', example: '꼬리 질문입니다.', required: false })
+  @IsString()
+  @IsOptional()
+  question?: string;
+}
+
+export class CaseResponseDTO {
+  @ApiProperty({ description: '분류된 케이스 (case1 ~ case6)', example: 'case1' })
+  @IsString()
+  case: string;
+}
+
+export class SearchDTO {
+  @ApiProperty({ description: '검색어', example: '바다' })
+  @IsString()
+  query: string;
+}
+
+export class SearchResultDTO {
+  @ApiProperty({ description: '검색된 원문', example: '오늘 바다에 다녀왔다.' })
   @IsString()
   content: string;
+}
+
+export class SearchResponseDTO {
+  @ApiProperty({ description: '검색 결과 배열', type: [SearchResultDTO] })
+  results: SearchResultDTO[];
+}
+
+export class AutobiographyResponseDTO {
+  @ApiProperty({ description: '생성 상태', example: 'COMPLETED' })
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @ApiProperty({ description: '캐시 사용 여부', example: true })
+  @IsOptional()
+  cached?: boolean;
+
+  @ApiProperty({ description: '생성된 PDF 파일 URL', example: '/pdfs/user_abc123.pdf' })
+  @IsString()
+  @IsOptional()
+  pdfUrl?: string;
+
+  @ApiProperty({ description: '생성된 마크다운 파일 내용 또는 경로', example: '# 나의 자서전...' })
+  @IsString()
+  @IsOptional()
+  markdown?: string;
+
+  @ApiProperty({ description: '앱 내 전자책 리더에서 사용할 마크다운 파일 URL', example: '/storage/data/user.md' })
+  @IsString()
+  @IsOptional()
+  markdownUrl?: string;
+
+  @ApiProperty({ description: '생성된 PDF 파일 경로 (Legacy)', example: '/pdfs/user_abc123.pdf' })
+  @IsString()
+  @IsOptional()
+  pdfPath?: string;
+
+  @ApiProperty({ description: '총 페이지 수', example: 42 })
+  @IsNumber()
+  @IsOptional()
+  pageCount?: number;
+
+  @ApiProperty({ description: '메시지', example: '자서전을 생성 중입니다.' })
+  @IsString()
+  @IsOptional()
+  message?: string;
+}
+
+export class GenerateAutobiographyRequestDTO {
+  @ApiProperty({ description: 'Selected PDF design template', example: 'classic', required: false })
+  @IsString()
+  @IsOptional()
+  templateId?: string;
+
+  @ApiProperty({ description: 'Legacy PDF theme alias', example: 'classic', required: false })
+  @IsString()
+  @IsOptional()
+  theme?: string;
+}
+
+export class AutobiographyFeedbackRequestDTO {
+  @ApiProperty({ description: '자서전 만족도 점수', example: 4, minimum: 1, maximum: 5 })
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating: number;
+
+  @ApiProperty({
+    description: '아쉬운 점 또는 개선 방향 태그',
+    example: ['내용을 더 자세히', '더 감성적으로'],
+    required: false,
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  feedbackTags?: string[];
+
+  @ApiProperty({ description: '사용자 자유 의견', example: '가족 이야기를 조금 더 넣고 싶어요.', required: false })
+  @IsString()
+  @IsOptional()
+  comment?: string;
+
+  @ApiProperty({ description: '이 피드백을 바탕으로 재생성하고 싶은지 여부', example: true, required: false })
+  @IsBoolean()
+  @IsOptional()
+  wantsRegeneration?: boolean;
+}
+
+export class AutobiographyFeedbackResponseDTO {
+  @ApiProperty({ description: '저장된 평가 ID', example: 1 })
+  id: number;
+
+  @ApiProperty({ description: '자서전 만족도 점수', example: 4 })
+  rating: number;
+
+  @ApiProperty({ description: '아쉬운 점 또는 개선 방향 태그', example: ['내용을 더 자세히', '더 감성적으로'], type: [String] })
+  feedbackTags: string[];
+
+  @ApiProperty({ description: '사용자 자유 의견', example: '가족 이야기를 조금 더 넣고 싶어요.', required: false })
+  comment?: string;
+
+  @ApiProperty({ description: '이 피드백을 바탕으로 재생성하고 싶은지 여부', example: true })
+  wantsRegeneration: boolean;
+}
+
+export class MyAutobiographyStatusResponseDTO {
+  @ApiProperty({ description: '생성 상태', example: 'COMPLETED' })
+  @IsString()
+  status: string;
+
+  @ApiProperty({ description: '캐시 사용 여부', example: true })
+  cached: boolean;
+
+  @ApiProperty({ description: '생성된 PDF 파일 URL', example: '/pdfs/user_abc123.pdf', required: false })
+  @IsString()
+  @IsOptional()
+  pdfUrl?: string;
+
+  @ApiProperty({ description: '총 페이지 수', example: 25, required: false })
+  @IsNumber()
+  @IsOptional()
+  pageCount?: number;
+
+  @ApiProperty({ description: '앱 내 전자책 리더에서 사용할 마크다운 파일 URL', example: '/storage/data/user.md', required: false })
+  @IsString()
+  @IsOptional()
+  markdownUrl?: string;
+
+  @ApiProperty({ description: '생성 완료 일시', example: '2026-05-12T13:00:29.000Z', required: false })
+  @IsOptional()
+  generatedAt?: Date | string;
+
+  @ApiProperty({ description: '에러 메시지', example: 'Error occurred', required: false })
+  @IsString()
+  @IsOptional()
+  errorMessage?: string;
 }

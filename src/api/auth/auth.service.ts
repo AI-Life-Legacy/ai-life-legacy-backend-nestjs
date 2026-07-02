@@ -8,8 +8,9 @@ import { AuthIdentityRepository } from '../auth-identity/auth-identity.repositor
 import { Provider } from '../../common/enum/auth-identity.enum';
 import { CreateUserRepository } from '../transaction/create-user.repository';
 import { LoggerService } from '../logger/logger.service';
-import { LoginDTO, RefreshTokenDto, SignupDTO } from './dto/request/auth.dto';
-import { JwtTokenResponseDTO } from './dto/response/auth.dto';
+import { LoginDTO, RefreshTokenDto, SignupDTO, ViewerLoginRequestDTO } from './dto/request/auth.dto';
+import { JwtTokenResponseDTO, ViewerLoginResponseDTO } from './dto/response/auth.dto';
+import { ViewerCodeRepository } from '../life-legacy/viewer-code.repository';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private authIdentityRepository: AuthIdentityRepository,
     private readonly loggerService: LoggerService,
     private transactionRepository: CreateUserRepository,
+    private viewerCodeRepository: ViewerCodeRepository,
   ) {}
 
   private hashToken(token: string): string {
@@ -117,5 +119,48 @@ export class AuthService {
     await this.refreshTokenRepository.updateRefreshToken(payload.uuid, this.hashToken(newRefreshToken), expiresAt);
 
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+  }
+
+  async viewerLogin(viewerLoginRequestDTO: ViewerLoginRequestDTO): Promise<ViewerLoginResponseDTO> {
+    const { viewerCode } = viewerLoginRequestDTO;
+
+    // 1. DB에서 viewerCode 조회
+    const codeRecord = await this.viewerCodeRepository.findByCode(viewerCode);
+
+    if (!codeRecord) {
+      throw new NotFoundException('유효하지 않은 뷰어 코드입니다.');
+    }
+
+    // 2. 검증 (ACTIVE, 만료 여부)
+    if (codeRecord.status !== 'ACTIVE') {
+      throw new UnauthorizedException('유효하지 않은 뷰어 코드입니다.');
+    }
+
+    if (new Date() > codeRecord.expiresAt) {
+      throw new UnauthorizedException('만료된 뷰어 코드입니다.');
+    }
+
+    // 3. 작성자 정보 구성
+    const authorName = codeRecord.authorUser.userCase?.name || '작성자';
+    const authorIntro = codeRecord.authorUser.intros?.[0]?.introText || '작성자 소개가 없습니다.';
+
+    // 4. Viewer JWT 발급
+    const payload = {
+      type: 'viewer',
+      viewerCode: codeRecord.viewerCode,
+      authorUserId: codeRecord.authorUserUuid,
+      autobiographyResultId: codeRecord.autobiographyResultId,
+      pdfUrl: codeRecord.pdfUrl,
+    };
+
+    const accessToken = this.generateAccessToken(payload);
+
+    return {
+      accessToken,
+      authorInfo: {
+        name: authorName,
+        intro: authorIntro,
+      },
+    };
   }
 }

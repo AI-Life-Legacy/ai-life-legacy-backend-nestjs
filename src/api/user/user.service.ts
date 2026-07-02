@@ -3,12 +3,15 @@ import { UserRepository } from './user.repository';
 import { UserCaseRepository } from '../user-case/user-case.repository';
 import { LifeLegacyRepository } from '../life-legacy/life-legacy.repository';
 import { UserIntroRepository } from '../user-intro/user-intro.repository';
-import { AiService } from '../ai/ai.service';
-import { UserWithdrawalRepository } from '../user-withdrawal/user-withdrawal.repository';
-import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO } from './dto/request/user.dto';
+import { PatchPostDTO, SaveUserIntroDTO, SaveUserWithdrawalDTO, UpdateNotificationSettingsDTO } from './dto/request/user.dto';
 import { SaveUserIntroductionRepository } from '../transaction/save-user-introduction.repository';
 import { TocWithQuestionsDTO, UserAnswerResponseDTO } from './dto/response/user.dto';
 import { DeleteUserRepository } from '../transaction/delete-user.repository';
+import {
+  parseAutobiographyPersonalization,
+  personalizeChapterTitle,
+  personalizeQuestionText,
+} from '../../common/personalization/autobiography-toc.personalization';
 
 @Injectable()
 export class UserService {
@@ -17,11 +20,9 @@ export class UserService {
     private userCaseRepository: UserCaseRepository,
     private lifeLegacyRepository: LifeLegacyRepository,
     private userIntroRepository: UserIntroRepository,
-    private aiService: AiService,
-    private userWithdrawalRepository: UserWithdrawalRepository,
     private saveUserTransactionRepository: SaveUserIntroductionRepository,
     private deleteUserTransactionRepository: DeleteUserRepository,
-  ) { }
+  ) {}
 
   async saveUserIntroduction(uuid: string, saveUserIntroDTO: SaveUserIntroDTO) {
     const { userIntroText } = saveUserIntroDTO;
@@ -29,59 +30,90 @@ export class UserService {
     const userIntroduction = await this.userIntroRepository.findUserIntroByUuid(uuid);
     if (userIntroduction) throw new ConflictException('Existing User Introduction');
 
-    // AI 서버한테 유저 Introduction을 기준으로 CaseName 받기
-    // const prompt = createCasePrompt(userIntroText);
-    const userCase = 'case1'; // await this.aiService.getChatGPTData(prompt, 100);
+    // DB에 자기소개 텍스트만 저장 (AI 서버 호출하지 않음)
+    await this.userIntroRepository.saveUserIntro(uuid, userIntroText);
 
-    await this.saveUserTransactionRepository.saveUserIntroduction(userCase, userIntroText, uuid);
+    return { userIntroText };
   }
 
   async getUserCase(uuid: string) {
     const user = await this.userRepository.findUserByUUID(uuid);
     if (!user) throw new NotFoundException('Not Found User');
-    return { caseId: user.userCase.id };
+    return { caseId: user.userCase?.id || null };
   }
 
   async getUserToc(uuid: string) {
     const { caseId } = await this.getUserCase(uuid);
+    if (!caseId) {
+      return {
+        totalChapters: 0,
+        completedChapters: 0,
+        progressPercent: 0,
+        chapters: [],
+      };
+    }
+
     const result = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
+    const userIntro = await this.userIntroRepository.findUserIntroByUuid(uuid);
+    const personalization = parseAutobiographyPersonalization(userIntro?.introText);
     const tocQuestions = result.tocMappings.map((mapping) => ({
       tocId: mapping.toc.id,
-      tocTitle: mapping.toc.title,
+      tocTitle: personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
       questionIds: mapping.toc.questions.map((q) => q.id),
     }));
+
     // 유저가 작성한 모든 답변 가져오기
     const answers = await this.lifeLegacyRepository.findAllUserAnswersByUuid(uuid);
 
     // QuestionId → answered 여부 매핑
     const answeredSet = new Set(answers.map((a) => a.question.id));
 
-    // toc별 퍼센티지 계산
-    return tocQuestions.map((toc) => {
+    const chapters = tocQuestions.map((toc) => {
       const total = toc.questionIds.length;
       const answered = toc.questionIds.filter((id) => answeredSet.has(id)).length;
       const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
       return {
         tocId: toc.tocId,
-        tocTitle: toc.tocTitle,
-        totalQuestions: total,
-        answered,
+        title: toc.tocTitle,
+        done: answered,
+        total: total,
+        status: answered === 0 ? 'not-started' : answered === total ? 'completed' : 'in-progress',
         percent,
       };
     });
+
+    const totalChapters = chapters.length;
+    const completedChapters = chapters.filter((c) => c.status === 'completed').length;
+    const progressPercent = totalChapters > 0 ? Math.round((completedChapters / totalChapters) * 100) : 0;
+
+    return {
+      totalChapters,
+      completedChapters,
+      progressPercent,
+      chapters,
+    };
   }
 
   async getUserTocAndQuestions(uuid: string): Promise<TocWithQuestionsDTO[]> {
     const { caseId } = await this.getUserCase(uuid);
+    if (!caseId) return [];
+
     const tocAndQuestions = await this.userCaseRepository.findTocAndQuestionsCaseId(caseId);
+    const userIntro = await this.userIntroRepository.findUserIntroByUuid(uuid);
+    const personalization = parseAutobiographyPersonalization(userIntro?.introText);
 
     return tocAndQuestions.tocMappings.map((mapping) => ({
       tocId: mapping.toc.id,
-      tocTitle: mapping.toc.title,
+      tocTitle: personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
       orderIndex: mapping.orderIndex,
-      questions: mapping.toc.questions.map((q) => ({
+      questions: mapping.toc.questions.map((q, index) => ({
         id: q.id,
-        questionText: q.questionText,
+        questionText: personalizeQuestionText(
+          q.questionText,
+          personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
+          index,
+          personalization,
+        ),
       })),
     }));
   }
@@ -111,5 +143,13 @@ export class UserService {
     if (!user) throw new NotFoundException('Not Found User');
 
     await this.deleteUserTransactionRepository.deleteUser(uuid, withdrawalReason, withdrawalText);
+  }
+
+  async updateProfileImage(userId: string, file: any): Promise<void> {
+    // TODO: S3 업로드 로직 등 구현
+  }
+
+  async updateNotificationSettings(userId: string, settings: UpdateNotificationSettingsDTO): Promise<void> {
+    // TODO: DB 저장 로직 구현
   }
 }

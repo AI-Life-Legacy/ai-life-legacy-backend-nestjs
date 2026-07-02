@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SavePostDTO {
@@ -9,4 +9,11 @@ export class SavePostDTO {
   @IsNotEmpty()
   @IsString()
   answer: string;
+}
+
+export class ShareRequestDTO {
+  @ApiProperty({ description: '목차 ID', example: 1, required: false })
+  @IsOptional()
+  @IsNumber()
+  tocId?: number;
 }

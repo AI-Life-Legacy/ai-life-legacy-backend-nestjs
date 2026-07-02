@@ -23,7 +23,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    if (payload.type === 'viewer') {
+      return {
+        isViewer: true,
+        authorUserId: payload.authorUserId,
+        autobiographyResultId: payload.autobiographyResultId,
+        pdfUrl: payload.pdfUrl,
+        viewerCode: payload.viewerCode,
+      };
+    }
+
     const { uuid } = payload;
+    if (!uuid) {
+      throw new NotFoundException('Invalid token payload');
+    }
+
     const user: User = await this.userRepository.findOne({ where: { uuid } });
     if (!user) {
       this.loggerService.warn(`JWT/ Validate Error : User with UUID ${uuid} not found.`);

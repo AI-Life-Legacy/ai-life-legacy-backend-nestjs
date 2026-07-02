@@ -1,29 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { LifeLegacyAnswer } from '../../../../db/entity/life-legacy-answer.entity';
 
-export class UserTocResponseDTO {
+export class UserChapterDTO {
   @ApiProperty({ example: 1, description: 'TOC(목차)의 고유 ID' })
   tocId: number;
 
-  @ApiProperty({ example: '가족 이야기', description: 'TOC(목차)의 제목' })
-  tocTitle: string;
+  @ApiProperty({ example: '어린 시절과 첫 기억', description: 'TOC(목차)의 제목' })
+  title: string;
 
-  @ApiProperty({ example: 10, description: 'TOC에 속한 전체 질문 개수' })
-  totalQuestions: number;
+  @ApiProperty({ example: 0, description: '답변 완료 질문 개수' })
+  done: number;
 
-  @ApiProperty({ example: 6, description: '사용자가 답변한 질문 개수' })
-  answered: number;
+  @ApiProperty({ example: 8, description: '전체 질문 개수' })
+  total: number;
 
-  @ApiProperty({ example: 60, description: '답변 완료 비율 (%)' })
+  @ApiProperty({ example: 'not-started', description: '진행 상태 (not-started, in-progress, completed)' })
+  status: string;
+
+  @ApiProperty({ example: 0, description: '답변 완료 비율 (%)' })
   percent: number;
+}
 
-  constructor(tocId: number, tocTitle: string, total: number, answered: number) {
-    this.tocId = tocId;
-    this.tocTitle = tocTitle;
-    this.totalQuestions = total;
-    this.answered = answered;
-    this.percent = total > 0 ? Math.round((answered / total) * 100) : 0;
-  }
+export class UserTocResultDTO {
+  @ApiProperty({ example: 7, description: '전체 챕터 개수' })
+  totalChapters: number;
+
+  @ApiProperty({ example: 0, description: '완료된 챕터 개수' })
+  completedChapters: number;
+
+  @ApiProperty({ example: 0, description: '전체 진행률 (%)' })
+  progressPercent: number;
+
+  @ApiProperty({ type: [UserChapterDTO], description: '챕터 목록' })
+  chapters: UserChapterDTO[];
 }
 
 export class QuestionDTO {

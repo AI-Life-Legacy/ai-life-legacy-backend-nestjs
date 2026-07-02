@@ -31,3 +31,10 @@ export class RefreshTokenDto {
   @IsString()
   refreshToken: string;
 }
+
+export class ViewerLoginRequestDTO {
+  @ApiProperty({ description: '뷰어 코드', example: 'A3F7K2' })
+  @IsNotEmpty()
+  @IsString()
+  viewerCode: string;
+}

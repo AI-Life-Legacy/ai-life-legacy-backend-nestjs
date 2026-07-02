@@ -24,12 +24,7 @@ async function bootstrap() {
     credentials: true, // 인증 관련 요청 허용
   });
 
-  const config = new DocumentBuilder()
-    .setTitle('AI 자서전')
-    .setDescription('AI 자서전 Swagger 문서')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  const config = new DocumentBuilder().setTitle('AI 자서전').setDescription('AI 자서전 Swagger 문서').setVersion('1.0').addBearerAuth().build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, documentFactory);
 
