@@ -1,0 +1,32 @@
+services:
+  ai:
+    build:
+      context: ../ai-life-legacy-ai-fastapi
+    env_file:
+      - ../ai-life-legacy-ai-fastapi/.env
+    environment:
+      PORT: 8000
+      CHROMA_DB_PATH: /app/storage/chroma_db
+      AI_SERVER_PUBLIC_URL: http://localhost:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../ai-life-legacy-ai-fastapi/storage:/app/storage
+      - ../ai-life-legacy-ai-fastapi/generated_pdfs:/app/generated_pdfs
+      - ../ai-life-legacy-ai-fastapi/.cache:/app/.cache
+
+  backend:
+    build:
+      context: .
+    env_file:
+      - ./.env
+    environment:
+      PORT: 3000
+      AI_SERVER_URL: http://ai:8000
+      AI_SERVER_PUBLIC_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - ai
+    volumes:
+      - ./logs:/app/logs

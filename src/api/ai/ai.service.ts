@@ -40,6 +40,7 @@ export class AiService {
   private openai: OpenAI;
   private readonly apiKey: string;
   private readonly organization: string;
+  private readonly aiServerUrl: string;
   private readonly activeAutobiographyGenerations = new Set<string>();
   constructor(
     private readonly configService: ConfigService,
@@ -58,6 +59,7 @@ export class AiService {
   ) {
     this.apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.organization = this.configService.get<string>('OPENAI_ORGANIZATION');
+    this.aiServerUrl = this.configService.get<string>('AI_SERVER_URL') || 'http://localhost:8000';
 
     if (!this.apiKey) {
       // 키 없으면 OpenAI 클라이언트 안 만들고 그냥 비활성화 상태로 둠
@@ -71,8 +73,12 @@ export class AiService {
     });
   }
 
+  private aiUrl(path: string): string {
+    return `${this.aiServerUrl.replace(/\/$/, '')}${path}`;
+  }
+
   async caseClassification(makeCaseDTO: MakeCaseDTO, userId: string): Promise<CaseResponseDTO> {
-    const response = await fetch('http://localhost:8000/api/v1/case', {
+    const response = await fetch(this.aiUrl('/api/v1/case'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -90,7 +96,7 @@ export class AiService {
   }
 
   async memorySync(syncDTO: SyncDTO, userId: string): Promise<void> {
-    const response = await fetch('http://localhost:8000/api/v1/rag/sync', {
+    const response = await fetch(this.aiUrl('/api/v1/rag/sync'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -120,7 +126,7 @@ export class AiService {
       ],
     };
 
-    const response = await fetch('http://localhost:8000/api/v1/generation/question', {
+    const response = await fetch(this.aiUrl('/api/v1/generation/question'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -156,8 +162,14 @@ export class AiService {
     return crypto.createHash('sha256').update(concatenatedAnswers).digest('hex');
   }
 
-  async generateAutobiography(userId: string, force: boolean = false, templateId?: string): Promise<AutobiographyResponseDTO> {
+  async generateAutobiography(
+    userId: string,
+    force: boolean = false,
+    templateId?: string,
+    generateIllustrations?: boolean,
+  ): Promise<AutobiographyResponseDTO> {
     const selectedTemplateId = this.normalizePdfTemplateId(templateId);
+    const shouldGenerateIllustrations = generateIllustrations !== false;
     // 1. 사용자 및 사용자 케이스 정보 조회
     const user = await this.userRepository.findOne({
       where: { uuid: userId },
@@ -225,7 +237,7 @@ export class AiService {
           updatedAt: latestFeedback.updatedAt?.toISOString?.() || latestFeedback.createdAt?.toISOString?.(),
         })
       : '';
-    const concatenatedAnswers = `${answers.map((a) => a.answerText).join('|||')}|||${feedbackHashPart}|||template:${selectedTemplateId}`;
+    const concatenatedAnswers = `${answers.map((a) => a.answerText).join('|||')}|||${feedbackHashPart}|||template:${selectedTemplateId}|||illustrations:${shouldGenerateIllustrations}`;
     const contentHash = crypto.createHash('sha256').update(concatenatedAnswers).digest('hex');
 
     let resultRecord = await this.autobiographyResultRepository.findOne({
@@ -315,7 +327,7 @@ export class AiService {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 360000); // 6 minutes timeout
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes timeout for AI illustrations
 
       const requestBody = {
         user_id: userId,
@@ -341,11 +353,11 @@ export class AiService {
         theme: selectedTemplateId,
         templateId: selectedTemplateId,
         template_id: selectedTemplateId,
-        generate_illustrations: false,
+        generate_illustrations: shouldGenerateIllustrations,
         force,
       };
 
-      const response = await fetch('http://localhost:8000/api/v1/generation/autobiography', {
+      const response = await fetch(this.aiUrl('/api/v1/generation/autobiography'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -518,7 +530,7 @@ export class AiService {
   }
 
   async getAutobiographyStatus(tocId: number, userId: string): Promise<AutobiographyStatusResponseDTO> {
-    const response = await fetch(`http://localhost:8000/api/v1/generation/autobiography/status/${userId}/${tocId}`, {
+    const response = await fetch(this.aiUrl(`/api/v1/generation/autobiography/status/${userId}/${tocId}`), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -609,7 +621,7 @@ export class AiService {
 
     let response;
     try {
-      response = await fetch('http://localhost:8000/api/v1/chat/chat', {
+      response = await fetch(this.aiUrl('/api/v1/chat/chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -666,7 +678,7 @@ export class AiService {
   }
 
   async search(searchDTO: SearchDTO, userId: string): Promise<SearchResponseDTO> {
-    const response = await fetch('http://localhost:8000/api/v1/rag/search', {
+    const response = await fetch(this.aiUrl('/api/v1/rag/search'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -228,6 +228,11 @@ export class GenerateAutobiographyRequestDTO {
   @IsString()
   @IsOptional()
   theme?: string;
+
+  @ApiProperty({ description: 'Generate AI illustrations for the autobiography PDF', example: true, required: false })
+  @IsBoolean()
+  @IsOptional()
+  generateIllustrations?: boolean;
 }
 
 export class AutobiographyFeedbackRequestDTO {

@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { LifeLegacyRepository } from './life-legacy.repository';
 import { LifeLegacyQuestionRepository } from '../life-legacy-question/life-legacy-question.repository';
 import { SavePostDTO, ShareRequestDTO } from './dto/request/life-legacy.dto';
@@ -20,6 +21,7 @@ import {
 @Injectable()
 export class LifeLegacyService {
   constructor(
+    private readonly configService: ConfigService,
     private lifeLegacyRepository: LifeLegacyRepository,
     private lifeLegacyQuestionRepository: LifeLegacyQuestionRepository,
     private viewerCodeRepository: ViewerCodeRepository,
@@ -30,6 +32,11 @@ export class LifeLegacyService {
     private userIntroRepository: UserIntroRepository,
     private userCaseRepository: UserCaseRepository,
   ) {}
+
+  private aiUrl(path: string): string {
+    const aiServerUrl = this.configService.get<string>('AI_SERVER_URL') || 'http://localhost:8000';
+    return `${aiServerUrl.replace(/\/$/, '')}${path}`;
+  }
 
   async getQuestions(tocId: number, uuid: string): Promise<QuestionResponseDTO[]> {
     // 1. 해당 toc의 모든 질문 가져오기
@@ -91,8 +98,7 @@ export class LifeLegacyService {
       const questionText = question ? question.questionText : '';
       const syncText = questionText ? `질문: ${questionText}\n답변: ${answer}` : answer;
 
-      const aiServerUrl = 'http://localhost:8000';
-      await fetch(`${aiServerUrl}/api/v1/rag/sync`, {
+      await fetch(this.aiUrl('/api/v1/rag/sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -67,7 +67,14 @@ export class AiController {
     @Body() dto: GenerateAutobiographyRequestDTO = {},
   ) {
     const isForce = force === 'true' || (force as any) === true;
-    return new SuccessResponseDTO(await this.aiService.generateAutobiography(uuid, isForce, dto.templateId || dto.theme));
+    return new SuccessResponseDTO(
+      await this.aiService.generateAutobiography(
+        uuid,
+        isForce,
+        dto.templateId || dto.theme,
+        dto.generateIllustrations,
+      ),
+    );
   }
 
   @Get('/autobiography/status')
