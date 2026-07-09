@@ -10,7 +10,6 @@ import { DeleteUserRepository } from '../transaction/delete-user.repository';
 import {
   parseAutobiographyPersonalization,
   personalizeChapterTitle,
-  personalizeQuestionText,
 } from '../../common/personalization/autobiography-toc.personalization';
 
 @Injectable()
@@ -59,7 +58,7 @@ export class UserService {
     const tocQuestions = result.tocMappings.map((mapping) => ({
       tocId: mapping.toc.id,
       tocTitle: personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
-      questionIds: mapping.toc.questions.map((q) => q.id),
+      questionIds: [...mapping.toc.questions].sort((a, b) => a.id - b.id).map((q) => q.id),
     }));
 
     // 유저가 작성한 모든 답변 가져오기
@@ -106,14 +105,9 @@ export class UserService {
       tocId: mapping.toc.id,
       tocTitle: personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
       orderIndex: mapping.orderIndex,
-      questions: mapping.toc.questions.map((q, index) => ({
+      questions: [...mapping.toc.questions].sort((a, b) => a.id - b.id).map((q) => ({
         id: q.id,
-        questionText: personalizeQuestionText(
-          q.questionText,
-          personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization),
-          index,
-          personalization,
-        ),
+        questionText: q.questionText,
       })),
     }));
   }

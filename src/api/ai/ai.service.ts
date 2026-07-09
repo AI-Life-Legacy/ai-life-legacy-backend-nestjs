@@ -32,7 +32,6 @@ import {
   buildPersonalizedTocPlan,
   parseAutobiographyPersonalization,
   personalizeChapterTitle,
-  personalizeQuestionText,
 } from '../../common/personalization/autobiography-toc.personalization';
 
 @Injectable()
@@ -304,14 +303,12 @@ export class AiService {
       if (mapping.toc) {
         const chapterQuestions = [];
         if (mapping.toc.questions) {
-          for (const q of mapping.toc.questions) {
+          for (const q of [...mapping.toc.questions].sort((a, b) => a.id - b.id)) {
             const ans = answers.find((a) => a.question.id === q.id);
-            const questionIndex = mapping.toc.questions.findIndex((question) => question.id === q.id);
-            const personalizedTitle = personalizeChapterTitle(mapping.toc.title, mapping.orderIndex, personalization);
             if (ans) {
               chapterQuestions.push({
                 question_id: q.id,
-                question: personalizeQuestionText(q.questionText, personalizedTitle, questionIndex, personalization),
+                question: q.questionText,
                 answer: ans.answerText,
               });
             }

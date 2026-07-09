@@ -9,14 +9,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { AutobiographyResult, AutobiographyStatus } from '../../db/entity/autobiography-result.entity';
 import { Repository } from 'typeorm';
 import { ViewerCodeStatus } from '../../db/entity/viewer-code.entity';
-import { UserIntroRepository } from '../user-intro/user-intro.repository';
-import { UserCaseRepository } from '../user-case/user-case.repository';
-import { User } from '../../db/entity/user.entity';
-import {
-  parseAutobiographyPersonalization,
-  personalizeChapterTitle,
-  personalizeQuestionText,
-} from '../../common/personalization/autobiography-toc.personalization';
 
 @Injectable()
 export class LifeLegacyService {
@@ -27,10 +19,6 @@ export class LifeLegacyService {
     private viewerCodeRepository: ViewerCodeRepository,
     @InjectRepository(AutobiographyResult)
     private autobiographyResultRepository: Repository<AutobiographyResult>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    private userIntroRepository: UserIntroRepository,
-    private userCaseRepository: UserCaseRepository,
   ) {}
 
   private aiUrl(path: string): string {
@@ -50,39 +38,10 @@ export class LifeLegacyService {
 
     // 4. allQuestions 중 answeredSet에 없는 것만 필터링
     const unansweredQuestions = allQuestions.filter((q) => !answeredSet.has(q.id));
-    const personalization = await this.getPersonalization(uuid);
-    const chapterMeta = await this.getChapterMeta(uuid, tocId);
-    const chapterTitle = personalizeChapterTitle(chapterMeta.title, chapterMeta.orderIndex, personalization);
-
     return unansweredQuestions.map((q) => ({
       id: q.id,
-      questionText: personalizeQuestionText(
-        q.questionText,
-        chapterTitle,
-        allQuestions.findIndex((question) => question.id === q.id),
-        personalization,
-      ),
+      questionText: q.questionText,
     }));
-  }
-
-  private async getPersonalization(uuid: string) {
-    const userIntro = await this.userIntroRepository.findUserIntroByUuid(uuid);
-    return parseAutobiographyPersonalization(userIntro?.introText);
-  }
-
-  private async getChapterMeta(uuid: string, tocId: number): Promise<{ orderIndex: number; title: string }> {
-    const user = await this.userRepository.findOne({
-      where: { uuid },
-      relations: ['userCase'],
-    });
-    if (!user?.userCase) return { orderIndex: 0, title: '' };
-
-    const userCaseData = await this.userCaseRepository.findTocAndQuestionsCaseId(user.userCase.id);
-    const mapping = userCaseData?.tocMappings?.find((item) => item.toc?.id === tocId);
-    return {
-      orderIndex: mapping?.orderIndex ?? 0,
-      title: mapping?.toc?.title ?? '',
-    };
   }
 
   async saveUserTocQuestionAnswer(uuid: string, tocId: number, questionId: number, savePostDto: SavePostDTO) {

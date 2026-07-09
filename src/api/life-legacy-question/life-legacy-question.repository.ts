@@ -18,6 +18,9 @@ export class LifeLegacyQuestionRepository {
         where: {
           toc: { id: tocId },
         },
+        order: {
+          id: 'ASC',
+        },
       });
     } catch (err) {
       this.loggerService.warn(`Life-Legacy/FindQuestionsByTocId Error : ${err}`);
