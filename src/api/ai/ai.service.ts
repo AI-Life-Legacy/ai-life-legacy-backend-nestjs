@@ -27,6 +27,7 @@ import { LifeLegacyAnswer } from '../../db/entity/life-legacy-answer.entity';
 import { User } from '../../db/entity/user.entity';
 import { UserCaseRepository } from '../user-case/user-case.repository';
 import * as crypto from 'crypto';
+import { Agent } from 'undici';
 import { UserIntroRepository } from '../user-intro/user-intro.repository';
 import {
   buildPersonalizedTocPlan,
@@ -322,9 +323,18 @@ export class AiService {
       }
     }
 
+    // The expensive AI/PDF work continues in the background. The request has
+    // already been validated and PROCESSING persisted, so the client can start
+    // polling /api/autobiography/status immediately without holding one long
+    // HTTP connection open.
+    void (async () => {
+    const dispatcher = new Agent({
+      headersTimeout: 1800000,
+      bodyTimeout: 1800000,
+    });
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes timeout for AI illustrations
+      const timeoutId = setTimeout(() => controller.abort(), 1800000); // 30-minute background safety limit
 
       const requestBody = {
         user_id: userId,
@@ -359,7 +369,8 @@ export class AiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
         signal: controller.signal,
-      });
+        dispatcher,
+      } as any);
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -472,9 +483,19 @@ export class AiService {
         );
       }
     } finally {
+      await dispatcher.close();
       // 락 해제
       this.activeAutobiographyGenerations.delete(userId);
     }
+    })().catch((error) => {
+      console.error(`[Autobiography] Background generation failed for ${userId}`, error);
+    });
+
+    return {
+      status: 'PROCESSING',
+      cached: false,
+      message: '자서전을 생성 중입니다.',
+    };
   }
 
   async getMyAutobiographyStatus(userId: string): Promise<MyAutobiographyStatusResponseDTO> {
@@ -498,6 +519,36 @@ export class AiService {
       generatedAt: resultRecord.completedAt || resultRecord.updatedAt,
       errorMessage: resultRecord.errorMessage || undefined,
     };
+  }
+
+  async getMyAutobiographyManuscript(userId: string): Promise<string> {
+    const resultRecord = await this.autobiographyResultRepository.findOne({
+      where: { userUuid: userId },
+    });
+
+    if (!resultRecord || resultRecord.status !== AutobiographyStatus.COMPLETED) {
+      throw new HttpException('완성된 자서전 원고가 없습니다.', HttpStatus.NOT_FOUND);
+    }
+
+    const publicMarkdownUrl = this.buildAutobiographyMarkdownUrl(
+      userId,
+      resultRecord.contentHash,
+      resultRecord.pdfUrl,
+    );
+    if (!publicMarkdownUrl) {
+      throw new HttpException('자서전 원고 경로가 없습니다.', HttpStatus.NOT_FOUND);
+    }
+
+    const publicUri = new URL(publicMarkdownUrl);
+    const internalMarkdownUrl = this.aiUrl(`${publicUri.pathname}${publicUri.search}`);
+    const response = await fetch(internalMarkdownUrl);
+    if (!response.ok) {
+      throw new HttpException(
+        '자서전 원고 파일을 불러오지 못했습니다.',
+        response.status === 404 ? HttpStatus.NOT_FOUND : HttpStatus.BAD_GATEWAY,
+      );
+    }
+    return response.text();
   }
 
   async saveAutobiographyFeedback(userId: string, dto: AutobiographyFeedbackRequestDTO): Promise<AutobiographyFeedbackResponseDTO> {

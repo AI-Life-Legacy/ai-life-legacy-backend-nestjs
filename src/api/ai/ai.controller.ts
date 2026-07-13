@@ -85,6 +85,15 @@ export class AiController {
     return new SuccessResponseDTO(await this.aiService.getMyAutobiographyStatus(uuid));
   }
 
+  @Get('/autobiography/manuscript')
+  @UseGuards(WriterOnlyGuard)
+  @ApiOperation({ summary: '자서전 원고 조회 API' })
+  async getMyAutobiographyManuscript(@GetUUID() uuid: string) {
+    return new SuccessResponseDTO({
+      markdown: await this.aiService.getMyAutobiographyManuscript(uuid),
+    });
+  }
+
   @Post('/autobiography/feedback')
   @UseGuards(WriterOnlyGuard)
   @ApiOperation({ summary: '자서전 완성도 및 만족도 평가 저장 API' })
