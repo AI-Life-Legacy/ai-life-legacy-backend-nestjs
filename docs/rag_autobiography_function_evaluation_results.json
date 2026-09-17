@@ -1,0 +1,25 @@
+{
+  "summary": {
+    "test_cases": 10,
+    "average_rag_context_relevance_percent": 50.0,
+    "average_life_record_answer_accuracy_percent": 60.0,
+    "average_grounded_response_rate_percent": 66.7,
+    "hallucination_cases": 3,
+    "hallucination_rate_percent": 30.0,
+    "non_hallucination_rate_percent": 70.0,
+    "autobiography_core_info_reflection_rate_percent": null,
+    "autobiography_core_info_reflection_rate_note": "생성된 자서전 본문 미확보로 평가 불가"
+  },
+  "cases": [
+    {"id":"TC-01","rag_context_relevance_percent":100,"answer_accuracy":1,"grounded_response_rate_percent":100.0,"hallucination":false},
+    {"id":"TC-02","rag_context_relevance_percent":75,"answer_accuracy":0.5,"grounded_response_rate_percent":100.0,"hallucination":false},
+    {"id":"TC-03","rag_context_relevance_percent":50,"answer_accuracy":0,"grounded_response_rate_percent":0.0,"hallucination":true},
+    {"id":"TC-04","rag_context_relevance_percent":25,"answer_accuracy":1,"grounded_response_rate_percent":100.0,"hallucination":false},
+    {"id":"TC-05","rag_context_relevance_percent":0,"answer_accuracy":0,"grounded_response_rate_percent":0.0,"hallucination":true},
+    {"id":"TC-06","rag_context_relevance_percent":75,"answer_accuracy":1,"grounded_response_rate_percent":100.0,"hallucination":false},
+    {"id":"TC-07","rag_context_relevance_percent":50,"answer_accuracy":1,"grounded_response_rate_percent":100.0,"hallucination":false},
+    {"id":"TC-08","rag_context_relevance_percent":75,"answer_accuracy":0.5,"grounded_response_rate_percent":100.0,"hallucination":false},
+    {"id":"TC-09","rag_context_relevance_percent":50,"answer_accuracy":0,"grounded_response_rate_percent":0.0,"hallucination":true},
+    {"id":"TC-10","rag_context_relevance_percent":0,"answer_accuracy":1,"grounded_response_rate_percent":null,"grounded_response_rate_note":"새로운 사실 주장이 없는 적절한 유보 응답이므로 평가 제외","hallucination":false}
+  ]
+}
